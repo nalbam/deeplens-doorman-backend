@@ -17,41 +17,47 @@ def train(event, context):
     data = parse_qs(event["body"])
     data = json.loads(data["payload"][0])
     print(data)
+
     key = data["callback_id"]
+
+    auth = "Bearer {}".format(slack_token)
+
+    s3 = boto3.resource("s3")
 
     # if we got a discard action, send an update first, and then remove the referenced image
     if data["actions"][0]["name"] == "discard":
+        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+            bucket_name, aws_region, key
+        )
+
         message = {
             "text": "Ok, I ignored this image",
             "attachments": [
                 {
-                    "image_url": "https://%s.s3-%s.amazonaws.com/%s"
-                    % (bucket_name, aws_region, key),
+                    "image_url": image_url,
                     "fallback": "Nope?",
                     "attachment_type": "default",
                 }
             ],
         }
-        print(message)
-        requests.post(
+        # print(message)
+        res = requests.post(
             data["response_url"],
             headers={
                 "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": "Bearer %s" % slack_token,
+                "Authorization": auth,
             },
             json=message,
         )
+        print(res.json())
 
         # delete
-        s3 = boto3.resource("s3")
         s3.Object(bucket_name, key).delete()
 
     if data["actions"][0]["name"] == "username":
         user_id = data["actions"][0]["selected_options"][0]["value"]
-        new_key = "trained/%s/%s.jpg" % (
-            user_id,
-            hashlib.md5(key.encode("utf-8")).hexdigest(),
-        )
+        hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
+        new_key = "trained/{}/{}.jpg".format(user_id, hashkey)
 
         # response is send, start training
         client = boto3.client("rekognition")
@@ -61,33 +67,37 @@ def train(event, context):
             ExternalImageId=user_id,
             DetectionAttributes=["DEFAULT"],
         )
-        print(res.json())
 
-        # move the s3 file to the 'trained' location
-        s3 = boto3.resource("s3")
+        # move to 'trained'
         s3.Object(bucket_name, new_key).copy_from(
-            CopySource="%s/%s" % (bucket_name, key)
+            CopySource="{}/{}".format(bucket_name, key)
         )
         s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
+
+        # delete
         s3.Object(bucket_name, key).delete()
 
+        text = "Trained as {}".format(user_id)
+        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+            bucket_name, aws_region, new_key
+        )
+
         message = {
-            "text": "Trained as %s" % user_id,
+            "text": text,
             "attachments": [
                 {
-                    "image_url": "https://%s.s3-%s.amazonaws.com/%s"
-                    % (bucket_name, aws_region, new_key),
+                    "image_url": image_url,
                     "fallback": "Nope?",
                     "attachment_type": "default",
                 }
             ],
         }
-        print(message)
+        # print(message)
         res = requests.post(
             data["response_url"],
             headers={
                 "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": "Bearer %s" % slack_token,
+                "Authorization": auth,
             },
             json=message,
         )

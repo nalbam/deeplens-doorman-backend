@@ -14,14 +14,18 @@ rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
 
 def unknown(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
+    # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
+
+    auth = "Bearer {}".format(slack_token)
+
+    image_url = "https://{}.s3-{}.amazonaws.com/{}".format(bucket_name, aws_region, key)
 
     message = {
         "channel": slack_channel_id,
         "text": "I don't know who this is, can you tell me?",
         "attachments": [
             {
-                "image_url": "https://%s.s3-%s.amazonaws.com/%s"
-                % (bucket_name, aws_region, key),
+                "image_url": image_url,
                 "fallback": "Nope?",
                 "callback_id": key,
                 "attachment_type": "default",
@@ -46,15 +50,15 @@ def unknown(event, context):
                         },
                     },
                 ],
-            }
+            },
         ],
     }
-    print(message)
+    # print(message)
     res = requests.post(
         "https://slack.com/api/chat.postMessage",
         headers={
             "Content-Type": "application/json;charset=UTF-8",
-            "Authorization": "Bearer %s" % slack_token,
+            "Authorization": auth,
         },
         json=message,
     )
