@@ -1,0 +1,11 @@
+{
+  "name": "deeplens-doorman-backend",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "serverless": "^1.63.0"
+  },
+  "devDependencies": {
+    "serverless-python-requirements": "^5.0.1"
+  }
+}
