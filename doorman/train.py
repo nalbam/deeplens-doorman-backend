@@ -55,12 +55,13 @@ def train(event, context):
 
         # response is send, start training
         client = boto3.client("rekognition")
-        resp = client.index_faces(
+        res = client.index_faces(
             CollectionId=rekognition_collection_id,
             Image={"S3Object": {"Bucket": bucket_name, "Name": key,}},
             ExternalImageId=user_id,
             DetectionAttributes=["DEFAULT"],
         )
+        print(res.json())
 
         # move the s3 file to the 'trained' location
         s3 = boto3.resource("s3")
