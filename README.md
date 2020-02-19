@@ -11,7 +11,8 @@ export REKOGNITION_COLLECTION_ID="doorman"
 ```bash
 # aws s3 mb s3://${BUCKET_NAME} --region ${AWSREGION}
 
-aws rekognition create-collection --collection-id "doorman" --region $AWSREGION
+aws rekognition create-collection --collection-id $REKOGNITION_COLLECTION_ID --region $AWSREGION
+# aws rekognition delete-collection --collection-id $REKOGNITION_COLLECTION_ID --region $AWSREGION
 ```
 
 ```bash
