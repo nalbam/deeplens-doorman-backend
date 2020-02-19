@@ -1,23 +1,46 @@
-# Distribution / packaging
-*.pyc
-.Python
-.env
-node_modules
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
 
-# Serverless directories
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows shortcuts
+*.lnk
+
+# Mac
+.DS_Store
+
+# java
+*.class
+*.ear
+*.jar
+*.war
+
+# pytest
+__pycache__
+.pytest_cache
+
+# maven
+build/
+config/
+target/
+
+# Nodejs
+dist/
+node_modules/
+package-lock.json
+
+# eclipse
+.metadata/
+.settings/
+
+# JetBrains
+.idea/
+*.iml
+
+# Serverless
 .serverless
