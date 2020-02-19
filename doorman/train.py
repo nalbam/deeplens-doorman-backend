@@ -1,8 +1,8 @@
-import json
 import boto3
-import requests
 import hashlib
+import json
 import os
+import requests
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
@@ -33,7 +33,6 @@ def train(event, context):
             ],
         }
         print(message)
-
         requests.post(
             data["response_url"],
             headers={
@@ -42,6 +41,8 @@ def train(event, context):
             },
             json=message,
         )
+
+        # delete
         s3 = boto3.resource("s3")
         s3.Object(bucket_name, key).delete()
 
@@ -50,27 +51,6 @@ def train(event, context):
         new_key = "trained/%s/%s.jpg" % (
             user_id,
             hashlib.md5(key.encode("utf-8")).hexdigest(),
-        )
-
-        message = {
-            "text": "Trained as %s" % user_id,
-            "attachments": [
-                {
-                    "image_url": "https://s3.amazonaws.com/%s/%s"
-                    % (bucket_name, new_key),
-                    "fallback": "Nope?",
-                    "attachment_type": "default",
-                }
-            ],
-        }
-        print(message)
-        requests.post(
-            data["response_url"],
-            headers={
-                "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": "Bearer %s" % slack_token,
-            },
-            json=message,
         )
 
         # response is send, start training
@@ -89,5 +69,27 @@ def train(event, context):
         )
         s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
         s3.Object(bucket_name, key).delete()
+
+        message = {
+            "text": "Trained as %s" % user_id,
+            "attachments": [
+                {
+                    "image_url": "https://%s.s3-%s.amazonaws.com/%s"
+                    % (bucket_name, aws_region, new_key),
+                    "fallback": "Nope?",
+                    "attachment_type": "default",
+                }
+            ],
+        }
+        print(message)
+        res = requests.post(
+            data["response_url"],
+            headers={
+                "Content-Type": "application/json;charset=UTF-8",
+                "Authorization": "Bearer %s" % slack_token,
+            },
+            json=message,
+        )
+        print(res.json())
 
     return {"statusCode": 200}

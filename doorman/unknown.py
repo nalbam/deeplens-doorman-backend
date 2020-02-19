@@ -1,8 +1,8 @@
-import json
 import boto3
-import requests
 import hashlib
+import json
 import os
+import requests
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
@@ -15,7 +15,7 @@ rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
 def unknown(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
 
-    data = {
+    message = {
         "channel": slack_channel_id,
         "text": "I don't know who this is, can you tell me?",
         "attachments": [
@@ -49,14 +49,13 @@ def unknown(event, context):
             }
         ],
     }
-    print(data)
-    foo = requests.post(
+    print(message)
+    res = requests.post(
         "https://slack.com/api/chat.postMessage",
         headers={
             "Content-Type": "application/json;charset=UTF-8",
             "Authorization": "Bearer %s" % slack_token,
         },
-        json=data,
+        json=message,
     )
-
-    print(foo.json())
+    print(res.json())

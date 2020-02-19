@@ -2,7 +2,7 @@
 
 ```bash
 export AWSREGION="ap-northeast-1"
-export BUCKET_NAME="deeplens-doorman-dev"
+export BUCKET_NAME="deeplens-doorman-demo"
 export SLACK_API_TOKEN="xoxb-xxx-xxx-xxx"
 export SLACK_CHANNEL_ID="CU6UJ4XXX"
 export REKOGNITION_COLLECTION_ID="doorman"

@@ -1,8 +1,8 @@
-import json
 import boto3
-import requests
 import hashlib
+import json
 import os
+import requests
 
 aws_region = os.environ["AWSREGION"]
 bucket_name = os.environ["BUCKET_NAME"]
@@ -59,7 +59,7 @@ def guess(event, context):
         print(resp.json())
         username = resp.json()["user"]["name"]
 
-        data = {
+        message = {
             "channel": slack_channel_id,
             "text": "Welcome @%s" % username,
             "link_names": True,
@@ -72,12 +72,14 @@ def guess(event, context):
                 }
             ],
         }
-        resp = requests.post(
+        res = requests.post(
             "https://slack.com/api/chat.postMessage",
             headers={
                 "Content-Type": "application/json;charset=UTF-8",
                 "Authorization": "Bearer %s" % slack_token,
             },
-            json=data,
+            json=message,
         )
-        return {}
+        print(res.json())
+
+    return {}
