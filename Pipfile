@@ -8,7 +8,7 @@ name = "pypi"
 [packages]
 
 "boto3" = "*"
-requests = "*"
+"requests" = "*"
 
 
 [dev-packages]
