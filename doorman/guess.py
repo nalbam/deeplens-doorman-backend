@@ -58,8 +58,8 @@ def guess(event, context):
         s3.Object(bucket_name, key).delete()
 
         # search username from slack
-        data = {"token": slack_token, "user": user_id}
-        res = requests.post("https://slack.com/api/users.info", data=data)
+        params = {"token": slack_token, "user": user_id}
+        res = requests.post("https://slack.com/api/users.info", data=params)
         print(res.json())
 
         username = res.json()["user"]["name"]

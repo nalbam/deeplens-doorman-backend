@@ -23,6 +23,7 @@ $RECYCLE.BIN/
 # pytest
 __pycache__
 .pytest_cache
+Pipfile.lock
 
 # maven
 build/

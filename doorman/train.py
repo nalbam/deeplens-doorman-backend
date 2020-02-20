@@ -59,7 +59,7 @@ def train(event, context):
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
         new_key = "trained/{}/{}.jpg".format(user_id, hashkey)
 
-        # response is send, start training
+        # save user_id
         client = boto3.client("rekognition")
         res = client.index_faces(
             CollectionId=rekognition_collection_id,
@@ -77,7 +77,14 @@ def train(event, context):
         # delete
         s3.Object(bucket_name, key).delete()
 
-        text = "Trained as {}".format(user_id)
+        # search username from slack
+        params = {"token": slack_token, "user": user_id}
+        res = requests.post("https://slack.com/api/users.info", data=params)
+        print(res.json())
+
+        username = res.json()["user"]["name"]
+
+        text = "Trained as @{} ({})".format(username, user_id)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             bucket_name, aws_region, new_key
         )
