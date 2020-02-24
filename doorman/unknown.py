@@ -16,7 +16,7 @@ def unknown(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
     # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
 
-    print("unknown", key)
+    print("Unknown", key)
 
     auth = "Bearer {}".format(slack_token)
 

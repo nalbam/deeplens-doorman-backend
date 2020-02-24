@@ -32,6 +32,19 @@ def guess(event, context):
     s3 = boto3.resource("s3")
 
     if len(res) == 0:
+        # error detected, move to trash
+
+        hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
+        new_key = "trash/{}.jpg".format(hashkey)
+
+        print("Trash", new_key)
+
+        # move to 'trash'
+        s3.Object(bucket_name, new_key).copy_from(
+            CopySource="{}/{}".format(bucket_name, key)
+        )
+        s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
+
         # delete
         s3.Object(bucket_name, key).delete()
 

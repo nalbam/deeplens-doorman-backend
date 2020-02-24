@@ -20,7 +20,7 @@ def train(event, context):
 
     key = data["callback_id"]
 
-    print("train", key)
+    print("Train", key)
 
     auth = "Bearer {}".format(slack_token)
 
@@ -69,7 +69,7 @@ def train(event, context):
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
         new_key = "trained/{}-{}/{}.jpg".format(user_id, username, hashkey)
 
-        print("trained", new_key)
+        print("Trained", new_key)
 
         # save user_id
         client = boto3.client("rekognition")
