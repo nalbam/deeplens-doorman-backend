@@ -15,23 +15,33 @@ def guess(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
     # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
 
-    client = boto3.client("rekognition")
-    res = client.search_faces_by_image(
-        CollectionId=rekognition_collection_id,
-        Image={"S3Object": {"Bucket": bucket_name, "Name": key}},
-        MaxFaces=1,
-        FaceMatchThreshold=70,
-    )
+    try:
+        client = boto3.client("rekognition")
+        res = client.search_faces_by_image(
+            CollectionId=rekognition_collection_id,
+            Image={"S3Object": {"Bucket": bucket_name, "Name": key}},
+            MaxFaces=1,
+            FaceMatchThreshold=70,
+        )
+    except Exception as ex:
+        print("Error", ex, key)
+        res = []
+
     print(res)
 
     s3 = boto3.resource("s3")
 
-    if len(res["FaceMatches"]) == 0:
+    if len(res) == 0:
+        # delete
+        s3.Object(bucket_name, key).delete()
+
+    elif len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
-        print("No matches found, sending to unknown")
 
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
         new_key = "unknown/{}.jpg".format(hashkey)
+
+        print("No matches found", new_key)
 
         # move to 'unknown'
         s3.Object(bucket_name, new_key).copy_from(
@@ -41,12 +51,15 @@ def guess(event, context):
 
         # delete
         s3.Object(bucket_name, key).delete()
+
     else:
-        print("Face found")
+        # known faces detected, send welcome message
 
         user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
         new_key = "detected/{}/{}.jpg".format(user_id, hashkey)
+
+        print("Face found", new_key)
 
         # move to 'detected'
         s3.Object(bucket_name, new_key).copy_from(

@@ -20,6 +20,8 @@ def train(event, context):
 
     key = data["callback_id"]
 
+    print("train", key)
+
     auth = "Bearer {}".format(slack_token)
 
     s3 = boto3.resource("s3")
@@ -56,8 +58,18 @@ def train(event, context):
 
     if data["actions"][0]["name"] == "username":
         user_id = data["actions"][0]["selected_options"][0]["value"]
+
+        # search username from slack
+        params = {"token": slack_token, "user": user_id}
+        res = requests.post("https://slack.com/api/users.info", data=params)
+        print(res.json())
+
+        username = res.json()["user"]["name"]
+
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
-        new_key = "trained/{}/{}.jpg".format(user_id, hashkey)
+        new_key = "trained/{}-{}/{}.jpg".format(user_id, username, hashkey)
+
+        print("trained", new_key)
 
         # save user_id
         client = boto3.client("rekognition")
@@ -76,13 +88,6 @@ def train(event, context):
 
         # delete
         s3.Object(bucket_name, key).delete()
-
-        # search username from slack
-        params = {"token": slack_token, "user": user_id}
-        res = requests.post("https://slack.com/api/users.info", data=params)
-        print(res.json())
-
-        username = res.json()["user"]["name"]
 
         text = "Trained as @{} ({})".format(username, user_id)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(

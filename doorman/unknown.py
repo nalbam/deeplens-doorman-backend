@@ -16,6 +16,8 @@ def unknown(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
     # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
 
+    print("unknown", key)
+
     auth = "Bearer {}".format(slack_token)
 
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(bucket_name, aws_region, key)
