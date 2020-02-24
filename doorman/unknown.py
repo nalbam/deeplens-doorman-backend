@@ -44,12 +44,12 @@ def unknown(event, context):
                         "style": "danger",
                         "type": "button",
                         "value": "ignore",
-                        "confirm": {
-                            "title": "Are you sure?",
-                            "text": "Are you sure you want to ignore and delete this image?",
-                            "ok_text": "Yes",
-                            "dismiss_text": "No",
-                        },
+                        # "confirm": {
+                        #     "title": "Are you sure?",
+                        #     "text": "Are you sure you want to ignore and delete this image?",
+                        #     "ok_text": "Yes",
+                        #     "dismiss_text": "No",
+                        # },
                     },
                 ],
             },
