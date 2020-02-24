@@ -69,8 +69,16 @@ def guess(event, context):
         # known faces detected, send welcome message
 
         user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
+
+        # search username from slack
+        params = {"token": slack_token, "user": user_id}
+        res = requests.post("https://slack.com/api/users.info", data=params)
+        print(res.json())
+
+        username = res.json()["user"]["name"]
+
         hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
-        new_key = "detected/{}/{}.jpg".format(user_id, hashkey)
+        new_key = "detected/{}-{}/{}.jpg".format(user_id, username, hashkey)
 
         print("Face found", new_key)
 
@@ -82,13 +90,6 @@ def guess(event, context):
 
         # delete
         s3.Object(bucket_name, key).delete()
-
-        # search username from slack
-        params = {"token": slack_token, "user": user_id}
-        res = requests.post("https://slack.com/api/users.info", data=params)
-        print(res.json())
-
-        username = res.json()["user"]["name"]
 
         text = "Welcome @{}".format(username)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(

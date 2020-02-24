@@ -56,7 +56,7 @@ def train(event, context):
         # delete
         s3.Object(bucket_name, key).delete()
 
-    if data["actions"][0]["name"] == "username":
+    elif data["actions"][0]["name"] == "username":
         user_id = data["actions"][0]["selected_options"][0]["value"]
 
         # search username from slack
