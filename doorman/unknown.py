@@ -10,6 +10,7 @@ bucket_name = os.environ["BUCKET_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
 rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
+dynamodb_table = os.environ["DYNAMODB_TABLE"]
 
 
 def unknown(event, context):

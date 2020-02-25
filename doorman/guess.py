@@ -9,19 +9,41 @@ bucket_name = os.environ["BUCKET_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
 rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
+dynamodb_table = os.environ["DYNAMODB_TABLE"]
+
+
+def move_to(s3, key, to):
+    hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
+    new_key = "{}/{}.jpg".format(to, hashkey)
+
+    print("Move to", to, new_key)
+
+    # copy
+    s3.Object(bucket_name, new_key).copy_from(
+        CopySource="{}/{}".format(bucket_name, key)
+    )
+    s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
+
+    # delete
+    s3.Object(bucket_name, key).delete()
+
+    return new_key
 
 
 def guess(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
     # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
 
+    # dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    # table = dynamodb.Table(dynamodb_table)
+
     try:
-        client = boto3.client("rekognition")
+        client = boto3.client("rekognition", region_name=aws_region)
         res = client.search_faces_by_image(
             CollectionId=rekognition_collection_id,
             Image={"S3Object": {"Bucket": bucket_name, "Name": key}},
             MaxFaces=1,
-            FaceMatchThreshold=70,
+            FaceMatchThreshold=80,
         )
     except Exception as ex:
         print("Error", ex, key)
@@ -34,39 +56,22 @@ def guess(event, context):
     if len(res) == 0:
         # error detected, move to trash
 
-        hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
-        new_key = "trash/{}.jpg".format(hashkey)
+        print("Error", key)
 
-        print("Trash", new_key)
-
-        # move to 'trash'
-        s3.Object(bucket_name, new_key).copy_from(
-            CopySource="{}/{}".format(bucket_name, key)
-        )
-        s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
-
-        # delete
-        s3.Object(bucket_name, key).delete()
+        move_to(s3, key, "trash")
 
     elif len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
 
-        hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
-        new_key = "unknown/{}.jpg".format(hashkey)
+        print("No matches found", key)
 
-        print("No matches found", new_key)
-
-        # move to 'unknown'
-        s3.Object(bucket_name, new_key).copy_from(
-            CopySource="{}/{}".format(bucket_name, key)
-        )
-        s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
-
-        # delete
-        s3.Object(bucket_name, key).delete()
+        new_key = move_to(s3, key, "unknown")
 
     else:
         # known faces detected, send welcome message
+
+        user_ids = []
+        user_names = []
 
         user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
 
@@ -77,20 +82,11 @@ def guess(event, context):
 
         username = res.json()["user"]["name"]
 
-        hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
-        new_key = "detected/{}-{}/{}.jpg".format(user_id, username, hashkey)
+        print("Face found", key)
 
-        print("Face found", new_key)
+        new_key = move_to(s3, key, "detected/{}-{}".format(user_id, username))
 
-        # move to 'detected'
-        s3.Object(bucket_name, new_key).copy_from(
-            CopySource="{}/{}".format(bucket_name, key)
-        )
-        s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
-
-        # delete
-        s3.Object(bucket_name, key).delete()
-
+        # for slack
         text = "Welcome @{}".format(username)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             bucket_name, aws_region, new_key
