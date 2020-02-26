@@ -64,6 +64,33 @@ def get_faces(user_id):
     return res
 
 
+def put_faces(user_id, image_key, image_url):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    latest = int(round(time.time() * 1000))
+
+    try:
+        res = table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, latest=:latest",
+            ExpressionAttributeValues={
+                ":image_key": image_key,
+                ":image_url": image_url,
+                ":image_type": "detected",
+                ":latest": latest,
+            },
+            ReturnValues="UPDATED_NEW",
+        )
+    except Exception as ex:
+        print("Error:", ex, user_id)
+        res = []
+
+    print("put_faces", res)
+
+    return res
+
+
 def guess(event, context):
     key = event["Records"][0]["s3"]["object"]["key"]
     # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
@@ -106,6 +133,8 @@ def guess(event, context):
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, new_key
     )
+
+    put_faces(user_id, new_key, image_url)
 
     message = {
         "channel": slack_channel_id,
