@@ -71,6 +71,19 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    photosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:STORAGE_NAME}
+        AttributeDefinitions:
+          - AttributeName: photo_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: photo_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
 
 plugins:
   - serverless-python-requirements

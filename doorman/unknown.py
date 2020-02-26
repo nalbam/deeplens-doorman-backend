@@ -3,12 +3,57 @@ import hashlib
 import json
 import os
 import requests
-from urllib.parse import parse_qs
+import time
+import uuid
 
 aws_region = os.environ["AWSREGION"]
 storage_name = os.environ["STORAGE_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+
+
+def index_faces(key, image_id):
+    try:
+        client = boto3.client("rekognition", region_name=aws_region)
+        res = client.index_faces(
+            CollectionId=storage_name,
+            Image={"S3Object": {"Bucket": storage_name, "Name": key,}},
+            ExternalImageId=image_id,
+            DetectionAttributes=["DEFAULT"],
+        )
+    except Exception as ex:
+        print("Error", ex, key)
+        res = []
+
+    print(res)
+
+    return res
+
+
+def create_faces(user_name, real_name, image_key):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    user_id = uuid.uuid4()
+    latest = int(round(time.time() * 1000))
+
+    try:
+        res = table.put_item(
+            Item={
+                "user_id": user_id,
+                "user_name": user_name,
+                "real_name": real_name,
+                "image_key": image_key,
+                "latest": latest,
+            }
+        )
+    except Exception as ex:
+        print("Error", ex, user_id)
+        res = []
+
+    print(res)
+
+    return user_id, res
 
 
 def unknown(event, context):
@@ -18,6 +63,8 @@ def unknown(event, context):
     print("Unknown", key)
 
     auth = "Bearer {}".format(slack_token)
+
+    user_id, res = create_faces("unknown", "Unknown", key)
 
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, key
@@ -30,7 +77,7 @@ def unknown(event, context):
             {
                 "image_url": image_url,
                 "fallback": "Nope?",
-                "callback_id": key,
+                "callback_id": user_id,
                 "attachment_type": "default",
                 "actions": [
                     {

@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import requests
+import time
 
 aws_region = os.environ["AWSREGION"]
 storage_name = os.environ["STORAGE_NAME"]
@@ -10,7 +11,9 @@ slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
 
 
-def move_to(s3, key, to):
+def move_to(key, to):
+    s3 = boto3.resource("s3")
+
     hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
     new_key = "{}/{}.jpg".format(to, hashkey)
 
@@ -28,13 +31,7 @@ def move_to(s3, key, to):
     return new_key
 
 
-def guess(event, context):
-    key = event["Records"][0]["s3"]["object"]["key"]
-    # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-
-    # dynamodb = boto3.resource("dynamodb", region_name=aws_region)
-    # table = dynamodb.Table(storage_name)
-
+def search_faces(key):
     try:
         client = boto3.client("rekognition", region_name=aws_region)
         res = client.search_faces_by_image(
@@ -49,27 +46,46 @@ def guess(event, context):
 
     print(res)
 
-    s3 = boto3.resource("s3")
+    return res
+
+
+def get_faces(user_id):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    try:
+        res = table.get_item(Key={"user_id": user_id})
+    except Exception as ex:
+        print("Error", ex, user_id)
+        res = []
+
+    print(res)
+
+    return res
+
+
+def guess(event, context):
+    key = event["Records"][0]["s3"]["object"]["key"]
+    # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
+
+    res = search_faces(key)
 
     if len(res) == 0:
         # error detected, move to trash
 
         print("Error", key)
 
-        move_to(s3, key, "trash")
+        move_to(key, "trash")
 
     elif len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
 
         print("No matches found", key)
 
-        new_key = move_to(s3, key, "unknown")
+        move_to(key, "unknown")
 
     else:
         # known faces detected, send welcome message
-
-        user_ids = []
-        user_names = []
 
         user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
 
@@ -82,7 +98,7 @@ def guess(event, context):
 
         print("Face found", key)
 
-        new_key = move_to(s3, key, "detected/{}-{}".format(user_id, username))
+        new_key = move_to(key, "detected/{}-{}".format(user_id, username))
 
         # for slack
         text = "Welcome @{}".format(username)

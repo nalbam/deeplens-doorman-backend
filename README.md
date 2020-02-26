@@ -16,9 +16,6 @@ export SLACK_CHANNEL_ID="CU6UJ4XXX"
 
 aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
 # aws rekognition delete-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
-aws rekognition search-faces-by-image --collection-id $STORAGE_NAME --region $AWSREGION \
---image-bytes fileb://images/nalbam.jpg | jq .
-
 ```
 
 ## deploy
@@ -27,6 +24,7 @@ aws rekognition search-faces-by-image --collection-id $STORAGE_NAME --region $AW
 # pip install pyenv
 # pyenv install 3.7.6
 pyenv shell 3.7.6
+
 # sls plugin install -n serverless-python-requirements
 sls deploy
 ```

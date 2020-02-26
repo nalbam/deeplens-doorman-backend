@@ -1,0 +1,23 @@
+{
+  "SearchedFaceBoundingBox": {
+    "Width": 0.28829848766326904,
+    "Height": 0.19274260103702545,
+    "Left": 0.36272019147872925,
+    "Top": 0.06902572512626648
+  },
+  "SearchedFaceConfidence": 99.99944305419922,
+  "FaceMatches": [],
+  "FaceModelVersion": "4.0",
+  "ResponseMetadata": {
+    "RequestId": "16868ec7-0670-46d8-af51-cd8a893b531d",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "content-type": "application/x-amz-json-1.1",
+      "date": "Wed, 26 Feb 2020 02:11:32 GMT",
+      "x-amzn-requestid": "16868ec7-0670-46d8-af51-cd8a893b531d",
+      "content-length": "224",
+      "connection": "keep-alive"
+    },
+    "RetryAttempts": 0
+  }
+}

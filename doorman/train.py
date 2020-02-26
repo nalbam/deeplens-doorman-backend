@@ -3,6 +3,8 @@ import hashlib
 import json
 import os
 import requests
+import time
+
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
@@ -11,7 +13,9 @@ slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
 
 
-def move_to(s3, key, to):
+def move_to(key, to):
+    s3 = boto3.resource("s3")
+
     hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
     new_key = "{}/{}.jpg".format(to, hashkey)
 
@@ -29,28 +33,101 @@ def move_to(s3, key, to):
     return new_key
 
 
+def index_faces(key, image_id):
+    try:
+        client = boto3.client("rekognition", region_name=aws_region)
+        res = client.index_faces(
+            CollectionId=storage_name,
+            Image={"S3Object": {"Bucket": storage_name, "Name": key,}},
+            ExternalImageId=image_id,
+            DetectionAttributes=["DEFAULT"],
+        )
+    except Exception as ex:
+        print("Error", ex, key)
+        res = []
+
+    print(res)
+
+    return res
+
+
+def get_faces(user_id):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    try:
+        res = table.get_item(Key={"user_id": user_id})
+    except Exception as ex:
+        print("Error", ex, user_id)
+        res = []
+
+    print(res)
+
+    return res
+
+
+def put_faces(user_id, user_name, real_name, image_key):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    latest = int(round(time.time() * 1000))
+
+    try:
+        res = table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, latest=:latest",
+            ExpressionAttributeValues={
+                ":user_name": user_name,
+                ":real_name": real_name,
+                ":image_key": image_key,
+                ":latest": latest,
+            },
+            ReturnValues="UPDATED_NEW",
+        )
+    except Exception as ex:
+        print("Error", ex, user_id)
+        res = []
+
+    print(res)
+
+    return res
+
+
 def train(event, context):
     # print(event['body'])
     data = parse_qs(event["body"])
     data = json.loads(data["payload"][0])
     print(data)
 
-    key = data["callback_id"]
+    user_id = data["callback_id"]
 
-    print("Train", key)
+    print("Train", user_id)
+
+    res = get_faces(user_id)
+
+    if len(res) == 0:
+        return {"statusCode": 500}
+
+    key = res["image_key"]
 
     auth = "Bearer {}".format(slack_token)
 
-    s3 = boto3.resource("s3")
-
     # if we got a discard action, send an update first, and then remove the referenced image
     if data["actions"][0]["name"] == "discard":
+
+        print("Ignored", key)
+
+        new_key = move_to(key, "trash")
+
+        put_faces(user_id, "ignored", "Ignored", new_key)
+
+        text = "Ok, I ignored this image"
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            storage_name, aws_region, key
+            storage_name, aws_region, new_key
         )
 
         message = {
-            "text": "Ok, I ignored this image",
+            "text": text,
             "attachments": [
                 {
                     "image_url": image_url,
@@ -70,10 +147,6 @@ def train(event, context):
         )
         print(res.json())
 
-        print("Ignored", key)
-
-        move_to(s3, key, "trash")
-
     elif data["actions"][0]["name"] == "username":
         user_id = data["actions"][0]["selected_options"][0]["value"]
 
@@ -82,23 +155,18 @@ def train(event, context):
         res = requests.post("https://slack.com/api/users.info", data=params)
         print(res.json())
 
-        username = res.json()["user"]["name"]
-        realname = res.json()["user"]["real_name"]
+        user_name = res.json()["user"]["name"]
+        real_name = res.json()["user"]["real_name"]
 
         print("Trained", key)
 
-        new_key = move_to(s3, key, "trained/{}-{}".format(user_id, username))
+        new_key = move_to(key, "trained/{}-{}".format(user_id, user_name))
 
-        # save user_id
-        client = boto3.client("rekognition", region_name=aws_region)
-        res = client.index_faces(
-            CollectionId=storage_name,
-            Image={"S3Object": {"Bucket": storage_name, "Name": new_key,}},
-            ExternalImageId=user_id,
-            DetectionAttributes=["DEFAULT"],
-        )
+        put_faces(user_id, user_name, real_name, new_key)
 
-        text = "Trained as @{} ({})".format(username, user_id)
+        index_faces(new_key, user_id)
+
+        text = "Trained as @{} ({})".format(user_name, user_id)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             storage_name, aws_region, new_key
         )
