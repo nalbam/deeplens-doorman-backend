@@ -36,7 +36,7 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - "arn:aws:dynamodb:${env:AWSREGION}:*:table/${env:STORAGE_NAME}"
+        - "arn:aws:dynamodb:${env:AWSREGION}:*:*"
 
   # you can define service wide environment variables here
   environment:
