@@ -29,7 +29,7 @@ def index_faces(key, image_id):
     return res
 
 
-def create_faces(user_name, real_name, image_key):
+def create_faces(user_name, real_name, image_key, image_url):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
     table = dynamodb.Table(storage_name)
 
@@ -43,6 +43,7 @@ def create_faces(user_name, real_name, image_key):
                 "user_name": user_name,
                 "real_name": real_name,
                 "image_key": image_key,
+                "image_url": image_url,
                 "image_type": "unknown",
                 "latest": latest,
             }
@@ -56,7 +57,7 @@ def create_faces(user_name, real_name, image_key):
     return user_id, res
 
 
-def put_faces(user_id, image_key):
+def put_faces(user_id, image_key, image_url):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
     table = dynamodb.Table(storage_name)
 
@@ -65,8 +66,12 @@ def put_faces(user_id, image_key):
     try:
         res = table.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set image_key=:image_key, latest=:latest",
-            ExpressionAttributeValues={":image_key": image_key, ":latest": latest},
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, latest=:latest",
+            ExpressionAttributeValues={
+                ":image_key": image_key,
+                ":image_url": image_url,
+                ":latest": latest,
+            },
             ReturnValues="UPDATED_NEW",
         )
     except Exception as ex:
@@ -86,22 +91,22 @@ def unknown(event, context):
 
     keys = key.split("/")
 
-    if len(keys) > 2:
-        user_id = keys[1]
-
-        put_faces(user_id, key)
-
-    else:
-        user_id, res = create_faces("unknown", "Unknown", key)
-
-        index_faces(key, user_id)
-
     auth = "Bearer {}".format(slack_token)
 
     text = "I don't know who this is, can you tell me?"
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, key
     )
+
+    if len(keys) > 2:
+        user_id = keys[1]
+
+        put_faces(user_id, key, image_url)
+
+    else:
+        user_id, res = create_faces("unknown", "Unknown", key, image_url)
+
+        index_faces(key, user_id)
 
     message = {
         "channel": slack_channel_id,

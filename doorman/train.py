@@ -66,7 +66,7 @@ def get_faces(user_id):
     return res
 
 
-def put_faces(user_id, user_name, real_name, image_key):
+def put_faces(user_id, user_name, real_name, image_key, image_url):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
     table = dynamodb.Table(storage_name)
 
@@ -75,11 +75,12 @@ def put_faces(user_id, user_name, real_name, image_key):
     try:
         res = table.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_type=:image_type, latest=:latest",
+            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, latest=:latest",
             ExpressionAttributeValues={
                 ":user_name": user_name,
                 ":real_name": real_name,
                 ":image_key": image_key,
+                ":image_url": image_url,
                 ":image_type": "trained",
                 ":latest": latest,
             },
@@ -163,14 +164,14 @@ def train(event, context):
 
         new_key = move_to(key, "trained/{}".format(user_id))
 
-        put_faces(user_id, user_name, real_name, new_key)
-
-        # index_faces(new_key, user_id)
-
         text = "Trained as {}".format(real_name)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             storage_name, aws_region, new_key
         )
+
+        put_faces(user_id, user_name, real_name, new_key, image_url)
+
+        # index_faces(new_key, user_id)
 
         message = {
             "text": text,
