@@ -6,11 +6,9 @@ import requests
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
-bucket_name = os.environ["BUCKET_NAME"]
+storage_name = os.environ["STORAGE_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
-rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
-dynamodb_table = os.environ["DYNAMODB_TABLE"]
 
 
 def unknown(event, context):
@@ -21,7 +19,9 @@ def unknown(event, context):
 
     auth = "Bearer {}".format(slack_token)
 
-    image_url = "https://{}.s3-{}.amazonaws.com/{}".format(bucket_name, aws_region, key)
+    image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+        storage_name, aws_region, key
+    )
 
     message = {
         "channel": slack_channel_id,

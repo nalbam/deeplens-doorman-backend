@@ -23,22 +23,21 @@ provider:
       Action:
         - "s3:*"
       Resource:
-        - "arn:aws:s3:::${env:BUCKET_NAME}/*"
+        - "arn:aws:s3:::${env:STORAGE_NAME}/*"
 
   # you can define service wide environment variables here
   environment:
     AWSREGION: ${env:AWSREGION}
-    BUCKET_NAME: ${env:BUCKET_NAME}
+    STORAGE_NAME: ${env:STORAGE_NAME}
     SLACK_API_TOKEN: ${env:SLACK_API_TOKEN}
     SLACK_CHANNEL_ID: ${env:SLACK_CHANNEL_ID}
-    REKOGNITION_COLLECTION_ID: ${env:REKOGNITION_COLLECTION_ID}
 
 functions:
   guess:
     handler: handler.guess
     events:
       - s3:
-          bucket: ${env:BUCKET_NAME}
+          bucket: ${env:STORAGE_NAME}
           event: s3:ObjectCreated:*
           rules:
             - prefix: incoming/
@@ -46,7 +45,7 @@ functions:
     handler: handler.unknown
     events:
       - s3:
-          bucket: ${env:BUCKET_NAME}
+          bucket: ${env:STORAGE_NAME}
           event: s3:ObjectCreated:*
           rules:
             - prefix: unknown/
@@ -62,7 +61,7 @@ resources:
     usersTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${env:DYNAMODB_TABLE}
+        TableName: ${env:STORAGE_NAME}
         AttributeDefinitions:
           - AttributeName: user_id
             AttributeType: S

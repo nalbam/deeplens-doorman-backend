@@ -6,11 +6,9 @@ import requests
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
-bucket_name = os.environ["BUCKET_NAME"]
+storage_name = os.environ["STORAGE_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
-rekognition_collection_id = os.environ["REKOGNITION_COLLECTION_ID"]
-dynamodb_table = os.environ["DYNAMODB_TABLE"]
 
 
 def move_to(s3, key, to):
@@ -20,13 +18,13 @@ def move_to(s3, key, to):
     print("Move to", to, new_key)
 
     # copy
-    s3.Object(bucket_name, new_key).copy_from(
-        CopySource="{}/{}".format(bucket_name, key)
+    s3.Object(storage_name, new_key).copy_from(
+        CopySource="{}/{}".format(storage_name, key)
     )
-    s3.ObjectAcl(bucket_name, new_key).put(ACL="public-read")
+    s3.ObjectAcl(storage_name, new_key).put(ACL="public-read")
 
     # delete
-    s3.Object(bucket_name, key).delete()
+    s3.Object(storage_name, key).delete()
 
     return new_key
 
@@ -48,7 +46,7 @@ def train(event, context):
     # if we got a discard action, send an update first, and then remove the referenced image
     if data["actions"][0]["name"] == "discard":
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            bucket_name, aws_region, key
+            storage_name, aws_region, key
         )
 
         message = {
@@ -94,15 +92,15 @@ def train(event, context):
         # save user_id
         client = boto3.client("rekognition", region_name=aws_region)
         res = client.index_faces(
-            CollectionId=rekognition_collection_id,
-            Image={"S3Object": {"Bucket": bucket_name, "Name": new_key,}},
+            CollectionId=storage_name,
+            Image={"S3Object": {"Bucket": storage_name, "Name": new_key,}},
             ExternalImageId=user_id,
             DetectionAttributes=["DEFAULT"],
         )
 
         text = "Trained as @{} ({})".format(username, user_id)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            bucket_name, aws_region, new_key
+            storage_name, aws_region, new_key
         )
 
         message = {
