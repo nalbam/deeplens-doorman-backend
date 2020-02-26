@@ -4,7 +4,6 @@ import json
 import os
 import requests
 import time
-import uuid
 
 aws_region = os.environ["AWSREGION"]
 storage_name = os.environ["STORAGE_NAME"]
@@ -22,7 +21,7 @@ def index_faces(key, image_id):
             DetectionAttributes=["DEFAULT"],
         )
     except Exception as ex:
-        print("Error", ex, key)
+        print("Error:", ex, key)
         res = []
 
     print(res)
@@ -34,7 +33,7 @@ def create_faces(user_name, real_name, image_key):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
     table = dynamodb.Table(storage_name)
 
-    user_id = uuid.uuid4()
+    user_id = hashlib.md5(image_key.encode("utf-8")).hexdigest()
     latest = int(round(time.time() * 1000))
 
     try:
@@ -48,7 +47,7 @@ def create_faces(user_name, real_name, image_key):
             }
         )
     except Exception as ex:
-        print("Error", ex, user_id)
+        print("Error:", ex, user_id)
         res = []
 
     print(res)
@@ -65,6 +64,8 @@ def unknown(event, context):
     auth = "Bearer {}".format(slack_token)
 
     user_id, res = create_faces("unknown", "Unknown", key)
+
+    index_faces(key, user_id)
 
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, key

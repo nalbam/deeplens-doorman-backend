@@ -43,7 +43,7 @@ def index_faces(key, image_id):
             DetectionAttributes=["DEFAULT"],
         )
     except Exception as ex:
-        print("Error", ex, key)
+        print("Error:", ex, key)
         res = []
 
     print(res)
@@ -58,7 +58,7 @@ def get_faces(user_id):
     try:
         res = table.get_item(Key={"user_id": user_id})
     except Exception as ex:
-        print("Error", ex, user_id)
+        print("Error:", ex, user_id)
         res = []
 
     print(res)
@@ -85,7 +85,7 @@ def put_faces(user_id, user_name, real_name, image_key):
             ReturnValues="UPDATED_NEW",
         )
     except Exception as ex:
-        print("Error", ex, user_id)
+        print("Error:", ex, user_id)
         res = []
 
     print(res)
@@ -108,7 +108,7 @@ def train(event, context):
     if len(res) == 0:
         return {"statusCode": 500}
 
-    key = res["image_key"]
+    key = res["Item"]["image_key"]
 
     auth = "Bearer {}".format(slack_token)
 
@@ -148,10 +148,10 @@ def train(event, context):
         print(res.json())
 
     elif data["actions"][0]["name"] == "username":
-        user_id = data["actions"][0]["selected_options"][0]["value"]
+        selected_id = data["actions"][0]["selected_options"][0]["value"]
 
         # search username from slack
-        params = {"token": slack_token, "user": user_id}
+        params = {"token": slack_token, "user": selected_id}
         res = requests.post("https://slack.com/api/users.info", data=params)
         print(res.json())
 
@@ -160,13 +160,13 @@ def train(event, context):
 
         print("Trained", key)
 
-        new_key = move_to(key, "trained/{}-{}".format(user_id, user_name))
+        new_key = move_to(key, "trained/{}".format(user_id))
 
         put_faces(user_id, user_name, real_name, new_key)
 
-        index_faces(new_key, user_id)
+        # index_faces(new_key, user_id)
 
-        text = "Trained as @{} ({})".format(user_name, user_id)
+        text = "Trained as {}".format(real_name)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             storage_name, aws_region, new_key
         )

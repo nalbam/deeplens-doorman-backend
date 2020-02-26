@@ -22,8 +22,21 @@ provider:
     - Effect: "Allow"
       Action:
         - "s3:*"
+        # - s3:GetObject
+        # - s3:PutObject
+        # - s3:PutObjectAcl
       Resource:
         - "arn:aws:s3:::${env:STORAGE_NAME}/*"
+    - Effect: Allow
+      Action: # Gives permission to DynamoDB tables in a specific region
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${env:AWSREGION}:*:table/${env:STORAGE_NAME}"
 
   # you can define service wide environment variables here
   environment:
@@ -67,19 +80,6 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: user_id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-    photosTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${env:STORAGE_NAME}
-        AttributeDefinitions:
-          - AttributeName: photo_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: photo_id
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1

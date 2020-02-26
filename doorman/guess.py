@@ -41,7 +41,7 @@ def search_faces(key):
             FaceMatchThreshold=80,
         )
     except Exception as ex:
-        print("Error", ex, key)
+        print("Error:", ex, key)
         res = []
 
     print(res)
@@ -56,7 +56,7 @@ def get_faces(user_id):
     try:
         res = table.get_item(Key={"user_id": user_id})
     except Exception as ex:
-        print("Error", ex, user_id)
+        print("Error:", ex, user_id)
         res = []
 
     print(res)
@@ -89,19 +89,26 @@ def guess(event, context):
 
         user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
 
-        # search username from slack
-        params = {"token": slack_token, "user": user_id}
-        res = requests.post("https://slack.com/api/users.info", data=params)
-        print(res.json())
+        # # search username from slack
+        # params = {"token": slack_token, "user": user_id}
+        # res = requests.post("https://slack.com/api/users.info", data=params)
+        # print(res.json())
 
-        username = res.json()["user"]["name"]
+        # username = res.json()["user"]["name"]
+
+        res = get_faces(user_id)
+
+        user_name = res["Item"]["user_name"]
+        real_name = res["Item"]["real_name"]
+
+        # username = res.json()["user"]["name"]
 
         print("Face found", key)
 
-        new_key = move_to(key, "detected/{}-{}".format(user_id, username))
+        new_key = move_to(key, "detected/{}".format(user_id))
 
         # for slack
-        text = "Welcome @{}".format(username)
+        text = "Welcome {}".format(real_name)
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             storage_name, aws_region, new_key
         )

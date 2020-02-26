@@ -14,8 +14,8 @@ export SLACK_CHANNEL_ID="CU6UJ4XXX"
 ```bash
 # aws s3 mb s3://${STORAGE_NAME} --region ${AWSREGION}
 
-aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
 # aws rekognition delete-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
+aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
 ```
 
 ## deploy
