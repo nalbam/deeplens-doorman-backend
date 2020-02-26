@@ -9,6 +9,7 @@ aws_region = os.environ["AWSREGION"]
 storage_name = os.environ["STORAGE_NAME"]
 slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+table_name = os.environ["TABLE_NAME"]
 
 
 def move_to(key, to):
@@ -51,7 +52,7 @@ def search_faces(key):
 
 def get_faces(user_id):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
-    table = dynamodb.Table(storage_name)
+    table = dynamodb.Table(table_name)
 
     try:
         res = table.get_item(Key={"user_id": user_id})
@@ -66,7 +67,7 @@ def get_faces(user_id):
 
 def put_faces(user_id, image_key, image_url):
     dynamodb = boto3.resource("dynamodb", region_name=aws_region)
-    table = dynamodb.Table(storage_name)
+    table = dynamodb.Table(table_name)
 
     latest = int(round(time.time() * 1000))
 

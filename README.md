@@ -4,9 +4,10 @@
 
 ```bash
 export AWSREGION="ap-northeast-1"
-export STORAGE_NAME="deeplens-doorman-demo"
 export SLACK_API_TOKEN="xoxb-xxx-xxx-xxx"
 export SLACK_CHANNEL_ID="CU6UJ4XXX"
+export STORAGE_NAME="deeplens-doorman-demo"
+export TABLE_NAME="doorman-users-demo"
 ```
 
 ## resource
