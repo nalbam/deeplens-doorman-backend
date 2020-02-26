@@ -72,69 +72,58 @@ def guess(event, context):
 
     if len(res) == 0:
         # error detected, move to trash
-
         print("Error", key)
-
         move_to(key, "trash")
+        return {}
 
-    elif len(res["FaceMatches"]) == 0:
+    if len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
-
         print("No matches found", key)
-
         move_to(key, "unknown")
+        return {}
 
-    else:
-        # known faces detected, send welcome message
+    # known faces detected, send welcome message
 
-        user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
+    user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
 
-        # # search username from slack
-        # params = {"token": slack_token, "user": user_id}
-        # res = requests.post("https://slack.com/api/users.info", data=params)
-        # print(res.json())
+    res = get_faces(user_id)
 
-        # username = res.json()["user"]["name"]
+    user_name = res["Item"]["user_name"]
+    real_name = res["Item"]["real_name"]
 
-        res = get_faces(user_id)
+    if user_name == "unknown":
+        print("Unknown", key)
+        move_to(key, "unknown/{}".format(user_id))
+        return {}
 
-        user_name = res["Item"]["user_name"]
-        real_name = res["Item"]["real_name"]
+    print("Face found", user_name, real_name)
 
-        # username = res.json()["user"]["name"]
+    new_key = move_to(key, "detected/{}".format(user_id))
 
-        print("Face found", key)
+    auth = "Bearer {}".format(slack_token)
 
-        new_key = move_to(key, "detected/{}".format(user_id))
+    text = "Welcome {}".format(real_name)
+    image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+        storage_name, aws_region, new_key
+    )
 
-        # for slack
-        text = "Welcome {}".format(real_name)
-        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            storage_name, aws_region, new_key
-        )
-        auth = "Bearer {}".format(slack_token)
-
-        message = {
-            "channel": slack_channel_id,
-            "text": text,
-            "link_names": True,
-            "attachments": [
-                {
-                    "image_url": image_url,
-                    "fallback": "Nope?",
-                    "attachment_type": "default",
-                }
-            ],
-        }
-        # print(message)
-        res = requests.post(
-            "https://slack.com/api/chat.postMessage",
-            headers={
-                "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": auth,
-            },
-            json=message,
-        )
-        print(res.json())
+    message = {
+        "channel": slack_channel_id,
+        "text": text,
+        "link_names": True,
+        "attachments": [
+            {"image_url": image_url, "fallback": "Nope?", "attachment_type": "default",}
+        ],
+    }
+    # print(message)
+    res = requests.post(
+        "https://slack.com/api/chat.postMessage",
+        headers={
+            "Content-Type": "application/json;charset=UTF-8",
+            "Authorization": auth,
+        },
+        json=message,
+    )
+    print(res.json())
 
     return {}

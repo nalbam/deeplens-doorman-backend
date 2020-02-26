@@ -61,19 +61,25 @@ def unknown(event, context):
 
     print("Unknown", key)
 
+    keys = key.split("/")
+
+    if len(keys) > 2:
+        user_id = keys[1]
+    else:
+        user_id, res = create_faces("unknown", "Unknown", key)
+
+        index_faces(key, user_id)
+
     auth = "Bearer {}".format(slack_token)
 
-    user_id, res = create_faces("unknown", "Unknown", key)
-
-    index_faces(key, user_id)
-
+    text = "I don't know who this is, can you tell me?"
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, key
     )
 
     message = {
         "channel": slack_channel_id,
-        "text": "I don't know who this is, can you tell me?",
+        "text": text,
         "attachments": [
             {
                 "image_url": image_url,
