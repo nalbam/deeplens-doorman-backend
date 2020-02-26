@@ -24,7 +24,7 @@ def index_faces(key, image_id):
         print("Error:", ex, key)
         res = []
 
-    print(res)
+    print("index_faces", res)
 
     return res
 
@@ -43,6 +43,7 @@ def create_faces(user_name, real_name, image_key):
                 "user_name": user_name,
                 "real_name": real_name,
                 "image_key": image_key,
+                "image_type": "unknown",
                 "latest": latest,
             }
         )
@@ -50,9 +51,31 @@ def create_faces(user_name, real_name, image_key):
         print("Error:", ex, user_id)
         res = []
 
-    print(res)
+    print("create_faces", res)
 
     return user_id, res
+
+
+def put_faces(user_id, image_key):
+    dynamodb = boto3.resource("dynamodb", region_name=aws_region)
+    table = dynamodb.Table(storage_name)
+
+    latest = int(round(time.time() * 1000))
+
+    try:
+        res = table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="set image_key=:image_key, latest=:latest",
+            ExpressionAttributeValues={":image_key": image_key, ":latest": latest},
+            ReturnValues="UPDATED_NEW",
+        )
+    except Exception as ex:
+        print("Error:", ex, user_id)
+        res = []
+
+    print("put_faces", res)
+
+    return res
 
 
 def unknown(event, context):
@@ -65,6 +88,9 @@ def unknown(event, context):
 
     if len(keys) > 2:
         user_id = keys[1]
+
+        put_faces(user_id, key)
+
     else:
         user_id, res = create_faces("unknown", "Unknown", key)
 

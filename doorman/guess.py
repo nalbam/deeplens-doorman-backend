@@ -44,7 +44,7 @@ def search_faces(key):
         print("Error:", ex, key)
         res = []
 
-    print(res)
+    print("search_faces", res)
 
     return res
 
@@ -59,7 +59,7 @@ def get_faces(user_id):
         print("Error:", ex, user_id)
         res = []
 
-    print(res)
+    print("get_faces", res)
 
     return res
 
@@ -91,7 +91,7 @@ def guess(event, context):
     user_name = res["Item"]["user_name"]
     real_name = res["Item"]["real_name"]
 
-    if user_name == "unknown":
+    if user_name == "unknown" or user_name == "ignored":
         print("Unknown", key)
         move_to(key, "unknown/{}".format(user_id))
         return {}

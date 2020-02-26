@@ -46,7 +46,7 @@ def index_faces(key, image_id):
         print("Error:", ex, key)
         res = []
 
-    print(res)
+    print("index_faces", res)
 
     return res
 
@@ -61,7 +61,7 @@ def get_faces(user_id):
         print("Error:", ex, user_id)
         res = []
 
-    print(res)
+    print("get_faces", res)
 
     return res
 
@@ -75,11 +75,12 @@ def put_faces(user_id, user_name, real_name, image_key):
     try:
         res = table.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, latest=:latest",
+            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_type=:image_type, latest=:latest",
             ExpressionAttributeValues={
                 ":user_name": user_name,
                 ":real_name": real_name,
                 ":image_key": image_key,
+                ":image_type": "trained",
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
@@ -88,7 +89,7 @@ def put_faces(user_id, user_name, real_name, image_key):
         print("Error:", ex, user_id)
         res = []
 
-    print(res)
+    print("put_faces", res)
 
     return res
 
