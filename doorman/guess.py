@@ -130,7 +130,7 @@ def guess(event, context):
 
     auth = "Bearer {}".format(slack_token)
 
-    text = "Welcome {}".format(real_name)
+    text = "Detected {}".format(real_name)
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, new_key
     )
