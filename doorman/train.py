@@ -20,7 +20,7 @@ def move_to(key, to):
     hashkey = hashlib.md5(key.encode("utf-8")).hexdigest()
     new_key = "{}/{}.jpg".format(to, hashkey)
 
-    print("Move to", to, new_key)
+    print("Move to", key, new_key)
 
     # copy
     s3.Object(storage_name, new_key).copy_from(

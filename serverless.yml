@@ -22,9 +22,6 @@ provider:
     - Effect: "Allow"
       Action:
         - "s3:*"
-        # - s3:GetObject
-        # - s3:PutObject
-        # - s3:PutObjectAcl
       Resource:
         - "arn:aws:s3:::${env:STORAGE_NAME}/*"
     - Effect: Allow
