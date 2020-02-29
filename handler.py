@@ -280,6 +280,7 @@ def guess(event, context):
     # known faces detected, send welcome message
 
     user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
+    bounding_box = res["SearchedFaceBoundingBox"]
 
     res = get_faces(user_id)
 
@@ -298,7 +299,7 @@ def guess(event, context):
 
     # new_key = copy_img(key, new_key)
 
-    make_rectangle(key, new_key, res["SearchedFaceBoundingBox"])
+    make_rectangle(key, new_key, bounding_box)
 
     delete_img(key)
 
