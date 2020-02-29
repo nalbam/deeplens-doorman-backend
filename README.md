@@ -26,6 +26,7 @@ aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREG
 # pyenv install 3.7.6
 pyenv shell 3.7.6
 
+# npm install -g serverless
 # sls plugin install -n serverless-python-requirements
 sls deploy
 ```
