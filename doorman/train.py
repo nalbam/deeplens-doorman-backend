@@ -122,12 +122,12 @@ def train(event, context):
 
         new_key = move_to(key, "trash")
 
-        put_faces(user_id, "ignored", "Ignored", new_key)
-
         text = "Ok, I ignored this image"
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             storage_name, aws_region, new_key
         )
+
+        put_faces(user_id, "ignored", "Ignored", new_key, image_url)
 
         message = {
             "text": text,
