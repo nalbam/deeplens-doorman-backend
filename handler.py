@@ -24,7 +24,8 @@ LINE_WIDTH = 2
 # from doorman import unknown
 
 
-s3 = boto3.client("s3")
+# s3 = boto3.client("s3")
+s3 = boto3.resource("s3")
 
 rek = boto3.client("rekognition", region_name=AWS_REGION)
 
@@ -53,7 +54,11 @@ def copy_img(key, new_key, delete=True):
     print("copy img", key, new_key)
 
     # copy
-    s3.copy_object(Bucket=STORAGE_NAME, CopySource=key, Key=new_key, ACL="public-read")
+    s3.Object(storage_name, new_key).copy_from(
+        CopySource="{}/{}".format(storage_name, key)
+    )
+    s3.ObjectAcl(storage_name, new_key).put(ACL="public-read")
+    # s3.copy_object(Bucket=STORAGE_NAME, CopySource=key, Key=new_key, ACL="public-read")
 
     if delete == True:
         delete_img(key)
@@ -63,16 +68,19 @@ def delete_img(key):
     print("delete img", key)
 
     # delete
-    s3.delete_object(Bucket=STORAGE_NAME, Key=key)
+    s3.Object(storage_name, key).delete()
+    # s3.delete_object(Bucket=STORAGE_NAME, Key=key)
 
 
 def make_rectangle(src_key, dst_key, box):
+    client = boto3.client("s3")
+
     if os.path.isdir("/tmp") == False:
         os.mkdir("/tmp")
 
     tmp_img = "/tmp/image.jpg"
 
-    s3.download_file(STORAGE_NAME, src_key, tmp_img)
+    client.download_file(STORAGE_NAME, src_key, tmp_img)
 
     src = cv2.imread(tmp_img, cv2.IMREAD_COLOR)
 
@@ -86,7 +94,7 @@ def make_rectangle(src_key, dst_key, box):
     # cv2.imwrite(dst_img, src)
     _, jpg_data = cv2.imencode(".jpg", src)
 
-    res = s3.put_object(
+    res = client.put_object(
         Bucket=STORAGE_NAME, Key=dst_key, Body=jpg_data.tostring(), ACL="public-read"
     )
 
@@ -94,12 +102,14 @@ def make_rectangle(src_key, dst_key, box):
 
 
 def make_crop(src_key, dst_key, box):
+    client = boto3.client("s3")
+
     if os.path.isdir("/tmp") == False:
         os.mkdir("/tmp")
 
     tmp_img = "/tmp/image.jpg"
 
-    s3.download_file(STORAGE_NAME, src_key, tmp_img)
+    client.download_file(STORAGE_NAME, src_key, tmp_img)
 
     src = cv2.imread(tmp_img, cv2.IMREAD_COLOR)
 
@@ -114,7 +124,7 @@ def make_crop(src_key, dst_key, box):
     # cv2.imwrite(dst_img, dst)
     _, jpg_data = cv2.imencode(".jpg", dst)
 
-    res = s3.put_object(
+    res = client.put_object(
         ACL="public-read", Body=jpg_data.tostring(), Bucket=STORAGE_NAME, Key=dst_key,
     )
 
