@@ -308,7 +308,7 @@ def guess(event, context):
     user_id = res["FaceMatches"][0]["Face"]["FaceId"]
     bounding_box = res["SearchedFaceBoundingBox"]
 
-    print("Face found", face_id, bounding_box)
+    print("Face found", user_id, bounding_box)
 
     res = get_faces(user_id)
 
