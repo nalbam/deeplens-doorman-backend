@@ -45,10 +45,12 @@ def move_trash(key):
     copy_img(key, new_key)
 
 
-def move_unknown(key, user_id="0"):
+def move_unknown(key, box, user_id="0"):
     print("move_unknown", key)
     new_key = new_path(key, "unknown", user_id)
-    copy_img(key, new_key)
+    # copy_img(key, new_key)
+    make_rectangle(key, new_key, box)
+    delete_img(key)
 
 
 def copy_img(key, new_key, delete=True):
@@ -309,17 +311,17 @@ def guess(event, context):
         move_trash(key)
         return {}
 
+    bounding_box = res["SearchedFaceBoundingBox"]
+
     if len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
         print("No matches found", key)
-        move_unknown(key)
+        move_unknown(key, bounding_box)
         return {}
 
     # known faces detected, send welcome message
 
-    # user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
     user_id = res["FaceMatches"][0]["Face"]["FaceId"]
-    bounding_box = res["SearchedFaceBoundingBox"]
 
     print("Face found", user_id, bounding_box)
 
@@ -331,7 +333,7 @@ def guess(event, context):
 
     if image_type == "unknown":
         print(user_id, user_name, real_name, key)
-        move_unknown(key, user_id)
+        move_unknown(key, bounding_box, user_id)
         return {}
 
     print("Face found", user_name, real_name)
@@ -339,9 +341,7 @@ def guess(event, context):
     new_key = new_path(key, "detected", user_id)
 
     # new_key = copy_img(key, new_key)
-
     make_rectangle(key, new_key, bounding_box)
-
     delete_img(key)
 
     text = "Detected {}".format(real_name)
@@ -412,8 +412,6 @@ def unknown(event, context):
         bounding_box = res["FaceRecords"][0]["Face"]["BoundingBox"]
 
         print("Indexed faces", user_id, bounding_box)
-
-        res = create_faces(user_id, key, image_url)
 
     auth = "Bearer {}".format(SLACK_API_TOKEN)
 
