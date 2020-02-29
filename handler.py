@@ -49,7 +49,7 @@ def move_unknown(key, box, user_id="0"):
     print("move_unknown", key)
     new_key = new_path(key, "unknown", user_id)
     # copy_img(key, new_key)
-    make_rectangle(key, new_key, box)
+    make_crop(key, new_key, box)
     delete_img(key)
 
 
