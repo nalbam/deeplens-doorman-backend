@@ -6,9 +6,9 @@ import requests
 import time
 
 aws_region = os.environ["AWSREGION"]
-storage_name = os.environ["STORAGE_NAME"]
-slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+slack_token = os.environ["SLACK_API_TOKEN"]
+storage_name = os.environ["STORAGE_NAME"]
 table_name = os.environ["TABLE_NAME"]
 
 
@@ -116,8 +116,8 @@ def unknown(event, context):
             {
                 "image_url": image_url,
                 "fallback": "Nope?",
-                "callback_id": user_id,
                 "attachment_type": "default",
+                "callback_id": user_id,
                 "actions": [
                     {
                         "name": "username",
@@ -125,19 +125,19 @@ def unknown(event, context):
                         "type": "select",
                         "data_source": "users",
                     },
-                    {
-                        "name": "discard",
-                        "text": "Ignore",
-                        "style": "danger",
-                        "type": "button",
-                        "value": "ignore",
-                        # "confirm": {
-                        #     "title": "Are you sure?",
-                        #     "text": "Are you sure you want to ignore and delete this image?",
-                        #     "ok_text": "Yes",
-                        #     "dismiss_text": "No",
-                        # },
-                    },
+                    # {
+                    #     "name": "discard",
+                    #     "text": "Ignore",
+                    #     "style": "danger",
+                    #     "type": "button",
+                    #     "value": "ignore",
+                    #     # "confirm": {
+                    #     #     "title": "Are you sure?",
+                    #     #     "text": "Are you sure you want to ignore and delete this image?",
+                    #     #     "ok_text": "Yes",
+                    #     #     "dismiss_text": "No",
+                    #     # },
+                    # },
                 ],
             },
         ],
@@ -152,3 +152,5 @@ def unknown(event, context):
         json=message,
     )
     print(res.json())
+
+    return {}

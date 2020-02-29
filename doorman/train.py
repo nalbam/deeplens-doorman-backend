@@ -8,9 +8,9 @@ import time
 from urllib.parse import parse_qs
 
 aws_region = os.environ["AWSREGION"]
-storage_name = os.environ["STORAGE_NAME"]
-slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+slack_token = os.environ["SLACK_API_TOKEN"]
+storage_name = os.environ["STORAGE_NAME"]
 table_name = os.environ["TABLE_NAME"]
 
 
@@ -176,6 +176,7 @@ def train(event, context):
 
         message = {
             "text": text,
+            "link_names": True,
             "attachments": [
                 {
                     "image_url": image_url,
