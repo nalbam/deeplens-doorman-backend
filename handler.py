@@ -1,10 +1,10 @@
 import boto3
 import cv2
-import hashlib
 import json
 import os
 import requests
 import time
+import uuid
 
 from urllib.parse import parse_qs
 
@@ -16,6 +16,8 @@ STORAGE_NAME = os.environ.get("STORAGE_NAME", "deeplens-doorman-demo")
 TABLE_NAME = os.environ.get("TABLE_NAME", "deeplens-doorman-demo")
 
 LINE_COLOR = (255, 165, 20)
+
+MAX_FACES = 3
 
 
 # from doorman import guess
@@ -39,18 +41,43 @@ def new_path(key, path1, path2="0"):
     return "{}/{}/{}".format(path1, path2, keys[len(keys) - 1])
 
 
+def gen_name(key):
+    keys = key.split(".")
+    if len(keys) == 0:
+        ext = "jpg"
+    else:
+        ext = keys[len(keys) - 1]
+    return "{}.{}".format(uuid.uuid4(), ext)
+
+
 def move_trash(key):
     print("move_trash", key)
-    new_key = new_path(key, "trash")
+    new_key = new_path(gen_name(key), "trash")
     copy_img(key, new_key)
+    return new_key
+
+
+def move_trained(key):
+    print("move_trained", key)
+    new_key = new_path(gen_name(key), "trained")
+    copy_img(key, new_key)
+    return new_key
 
 
 def move_unknown(key, box, user_id="0"):
     print("move_unknown", key)
-    new_key = new_path(key, "unknown", user_id)
+    new_key = new_path(gen_name(key), "unknown", user_id)
     # copy_img(key, new_key)
     make_crop(key, new_key, box)
-    delete_img(key)
+    return new_key
+
+
+def mave_detected(key, box, user_id="0"):
+    print("mave_detected", key)
+    new_key = new_path(gen_name(key), "detected", user_id)
+    # copy_img(key, new_key)
+    make_rectangle(key, new_key, box)
+    return new_key
 
 
 def copy_img(key, new_key, delete=True):
@@ -155,7 +182,7 @@ def search_faces(key):
         res = rek.search_faces_by_image(
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
-            MaxFaces=1,
+            MaxFaces=MAX_FACES,
             FaceMatchThreshold=80,
         )
     except Exception as ex:
@@ -173,7 +200,7 @@ def index_faces(key):
         res = rek.index_faces(
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
-            MaxFaces=1,
+            MaxFaces=MAX_FACES,
             DetectionAttributes=["DEFAULT"],
             # ExternalImageId=image_id,
         )
@@ -212,7 +239,6 @@ def create_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     # tbl = ddb.Table(TABLE_NAME)
 
-    # user_id = hashlib.md5(image_key.encode("utf-8")).hexdigest()
     latest = int(round(time.time() * 1000))
 
     try:
@@ -299,57 +325,10 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     return res
 
 
-def guess(event, context):
-    key = event["Records"][0]["s3"]["object"]["key"]
-    # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-
-    res = search_faces(key)
-
-    if len(res) == 0:
-        # error detected, move to trash
-        print("No faces", key)
-        move_trash(key)
-        return {}
-
-    bounding_box = res["SearchedFaceBoundingBox"]
-
-    if len(res["FaceMatches"]) == 0:
-        # no known faces detected, let the users decide in slack
-        print("No matches found", key)
-        move_unknown(key, bounding_box)
-        return {}
-
-    # known faces detected, send welcome message
-
-    user_id = res["FaceMatches"][0]["Face"]["FaceId"]
-
-    print("Face found", user_id, bounding_box)
-
-    res = get_faces(user_id)
-
-    image_type = res["Item"]["image_type"]
-    user_name = res["Item"]["user_name"]
-    real_name = res["Item"]["real_name"]
-
-    if image_type == "unknown":
-        print(user_id, user_name, real_name, key)
-        move_unknown(key, bounding_box, user_id)
-        return {}
-
-    print("Face found", user_name, real_name)
-
-    new_key = new_path(key, "detected", user_id)
-
-    # new_key = copy_img(key, new_key)
-    make_rectangle(key, new_key, bounding_box)
-    delete_img(key)
-
-    text = "Detected {}".format(real_name)
+def send_message(text, key):
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-        STORAGE_NAME, AWS_REGION, new_key
+        STORAGE_NAME, AWS_REGION, key
     )
-
-    put_faces_image(user_id, new_key, image_url)
 
     auth = "Bearer {}".format(SLACK_API_TOKEN)
 
@@ -372,6 +351,55 @@ def guess(event, context):
     )
     print(res.json())
 
+
+def guess(event, context):
+    key = event["Records"][0]["s3"]["object"]["key"]
+    # event_bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
+
+    res = search_faces(key)
+
+    if len(res) == 0:
+        # error detected, move to trash
+        print("No faces", key)
+        move_trash(key)
+        return {}
+
+    bounding_box = res["SearchedFaceBoundingBox"]
+
+    if len(res["FaceMatches"]) == 0:
+        # no known faces detected, let the users decide in slack
+        print("No matches found", key)
+        move_unknown(key, bounding_box)
+        delete_img(key)
+        return {}
+
+    # known faces detected, send welcome message
+
+    for face in res["FaceMatches"]:
+        user_id = face["Face"]["FaceId"]
+        bounding_box = face["Face"]["BoundingBox"]
+
+        print("face matches", user_id, bounding_box)
+
+        res = get_faces(user_id)
+
+        image_type = res["Item"]["image_type"]
+        user_name = res["Item"]["user_name"]
+        real_name = res["Item"]["real_name"]
+
+        if image_type == "unknown":
+            print("unknown", user_id, user_name, real_name, key)
+            move_unknown(key, bounding_box, user_id)
+        else:
+            print("detected", user_id, user_name, real_name, key)
+            mave_detected(key, bounding_box, user_id)
+            put_faces_image(user_id, new_key, image_url)
+
+            text = "Detected {}".format(real_name)
+            send_message(text, new_key)
+
+    delete_img(key)
+
     return {}
 
 
@@ -383,7 +411,6 @@ def unknown(event, context):
 
     keys = key.split("/")
 
-    text = "I don't know who this is, can you tell me?"
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         STORAGE_NAME, AWS_REGION, key
     )
@@ -413,51 +440,54 @@ def unknown(event, context):
 
         print("Indexed faces", user_id, bounding_box)
 
-    auth = "Bearer {}".format(SLACK_API_TOKEN)
+        put_faces(user_id, key, image_url)
 
-    message = {
-        "channel": SLACK_CHANNEL_ID,
-        "text": text,
-        "attachments": [
-            {
-                "image_url": image_url,
-                "fallback": "Nope?",
-                "attachment_type": "default",
-                # "callback_id": user_id,
-                # "actions": [
-                #     {
-                #         "name": "username",
-                #         "text": "Select a username...",
-                #         "type": "select",
-                #         "data_source": "users",
-                #     },
-                #     # {
-                #     #     "name": "discard",
-                #     #     "text": "Ignore",
-                #     #     "style": "danger",
-                #     #     "type": "button",
-                #     #     "value": "ignore",
-                #     #     # "confirm": {
-                #     #     #     "title": "Are you sure?",
-                #     #     #     "text": "Are you sure you want to ignore and delete this image?",
-                #     #     #     "ok_text": "Yes",
-                #     #     #     "dismiss_text": "No",
-                #     #     # },
-                #     # },
-                # ],
-            },
-        ],
-    }
-    # print(message)
-    res = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={
-            "Content-Type": "application/json;charset=UTF-8",
-            "Authorization": auth,
-        },
-        json=message,
-    )
-    print(res.json())
+    text = "I don't know who this is, can you tell me?"
+    send_message(text, key)
+
+    # message = {
+    #     "channel": SLACK_CHANNEL_ID,
+    #     "text": text,
+    #     "attachments": [
+    #         {
+    #             "image_url": image_url,
+    #             "fallback": "Nope?",
+    #             "attachment_type": "default",
+    #             # "callback_id": user_id,
+    #             # "actions": [
+    #             #     {
+    #             #         "name": "username",
+    #             #         "text": "Select a username...",
+    #             #         "type": "select",
+    #             #         "data_source": "users",
+    #             #     },
+    #             #     # {
+    #             #     #     "name": "discard",
+    #             #     #     "text": "Ignore",
+    #             #     #     "style": "danger",
+    #             #     #     "type": "button",
+    #             #     #     "value": "ignore",
+    #             #     #     # "confirm": {
+    #             #     #     #     "title": "Are you sure?",
+    #             #     #     #     "text": "Are you sure you want to ignore and delete this image?",
+    #             #     #     #     "ok_text": "Yes",
+    #             #     #     #     "dismiss_text": "No",
+    #             #     #     # },
+    #             #     # },
+    #             # ],
+    #         },
+    #     ],
+    # }
+    # # print(message)
+    # res = requests.post(
+    #     "https://slack.com/api/chat.postMessage",
+    #     headers={
+    #         "Content-Type": "application/json;charset=UTF-8",
+    #         "Authorization": auth,
+    #     },
+    #     json=message,
+    # )
+    # print(res.json())
 
     return {}
 
@@ -479,42 +509,16 @@ def train(event, context):
 
     key = res["Item"]["image_key"]
 
-    auth = "Bearer {}".format(SLACK_API_TOKEN)
-
     # if we got a discard action, send an update first, and then remove the referenced image
     if data["actions"][0]["name"] == "discard":
         print("Ignored", key)
 
-        new_key = new_path(key, "trash")
-        copy_img(key, new_key)
+        new_key = move_trash(key)
+
+        put_faces(user_id, new_key, image_url, "ignored")
 
         text = "Ok, I ignored this image"
-        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            STORAGE_NAME, AWS_REGION, new_key
-        )
-
-        put_faces(user_id, new_key, image_url, "ignored", "ignored", "Ignored")
-
-        message = {
-            "text": text,
-            "attachments": [
-                {
-                    "image_url": image_url,
-                    "fallback": "Nope?",
-                    "attachment_type": "default",
-                }
-            ],
-        }
-        # print(message)
-        res = requests.post(
-            data["response_url"],
-            headers={
-                "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": auth,
-            },
-            json=message,
-        )
-        print(res.json())
+        send_message(text, new_key)
 
     elif data["actions"][0]["name"] == "username":
         selected_id = data["actions"][0]["selected_options"][0]["value"]
@@ -529,38 +533,11 @@ def train(event, context):
 
         print("Trained", key)
 
-        new_key = new_path(key, "trained")
-        copy_img(key, new_key)
-
-        text = "Trained as {}".format(real_name)
-        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-            STORAGE_NAME, AWS_REGION, new_key
-        )
+        new_key = move_trained(key)
 
         put_faces(user_id, new_key, image_url, "trained", user_name, real_name)
 
-        # index_faces(new_key, user_id)
-
-        message = {
-            "text": text,
-            "link_names": True,
-            "attachments": [
-                {
-                    "image_url": image_url,
-                    "fallback": "Nope?",
-                    "attachment_type": "default",
-                }
-            ],
-        }
-        # print(message)
-        res = requests.post(
-            data["response_url"],
-            headers={
-                "Content-Type": "application/json;charset=UTF-8",
-                "Authorization": auth,
-            },
-            json=message,
-        )
-        print(res.json())
+        text = "Trained as {}".format(real_name)
+        send_message(text, new_key)
 
     return {"statusCode": 200}
