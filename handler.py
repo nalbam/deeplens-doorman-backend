@@ -375,33 +375,35 @@ def guess(event, context):
 
     # known faces detected, send welcome message
 
-    for face in res["FaceMatches"]:
-        user_id = face["Face"]["FaceId"]
-        bounding_box = face["Face"]["BoundingBox"]
+    user_id = res["FaceMatches"][0]["Face"]["FaceId"]
 
-        print("face matches", user_id, bounding_box)
+    # for face in res["FaceMatches"]:
+    #     user_id = face["Face"]["FaceId"]
+    #     bounding_box = face["Face"]["BoundingBox"]
 
-        res = get_faces(user_id)
+    print("face matches", user_id, bounding_box)
 
-        image_type = res["Item"]["image_type"]
-        user_name = res["Item"]["user_name"]
-        real_name = res["Item"]["real_name"]
+    res = get_faces(user_id)
 
-        if image_type == "unknown":
-            print("unknown", user_id, user_name, real_name, key)
-            new_key = move_unknown(key, bounding_box, user_id)
-        else:
-            print("detected", user_id, user_name, real_name, key)
-            new_key = mave_detected(key, bounding_box, user_id)
+    image_type = res["Item"]["image_type"]
+    user_name = res["Item"]["user_name"]
+    real_name = res["Item"]["real_name"]
 
-            image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
-                STORAGE_NAME, AWS_REGION, new_key
-            )
+    if image_type == "unknown":
+        print("unknown", user_id, user_name, real_name, key)
+        new_key = move_unknown(key, bounding_box, user_id)
+    else:
+        print("detected", user_id, user_name, real_name, key)
+        new_key = mave_detected(key, bounding_box, user_id)
 
-            put_faces_image(user_id, new_key, image_url)
+        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+            STORAGE_NAME, AWS_REGION, new_key
+        )
 
-            text = "Detected {}".format(real_name)
-            send_message(text, new_key)
+        put_faces_image(user_id, new_key, image_url)
+
+        text = "Detected {}".format(real_name)
+        send_message(text, new_key)
 
     delete_img(key)
 
@@ -444,6 +446,8 @@ def unknown(event, context):
         bounding_box = res["FaceRecords"][0]["Face"]["BoundingBox"]
 
         print("Indexed faces", user_id, bounding_box)
+
+        # new_key = move_unknown(key, bounding_box, user_id)
 
         put_faces(user_id, key, image_url)
 
