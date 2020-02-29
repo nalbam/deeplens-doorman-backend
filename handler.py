@@ -348,7 +348,7 @@ def guess(event, context):
         STORAGE_NAME, AWS_REGION, new_key
     )
 
-    put_faces(user_id, new_key, image_url)
+    put_faces_image(user_id, new_key, image_url)
 
     auth = "Bearer {}".format(SLACK_API_TOKEN)
 
@@ -494,7 +494,7 @@ def train(event, context):
             STORAGE_NAME, AWS_REGION, new_key
         )
 
-        put_faces(user_id, "ignored", "Ignored", new_key, image_url)
+        put_faces(user_id, new_key, image_url, "ignored", "ignored", "Ignored")
 
         message = {
             "text": text,
@@ -538,7 +538,7 @@ def train(event, context):
             STORAGE_NAME, AWS_REGION, new_key
         )
 
-        put_faces(user_id, user_name, real_name, new_key, image_url)
+        put_faces(user_id, new_key, image_url, "trained", user_name, real_name)
 
         # index_faces(new_key, user_id)
 
