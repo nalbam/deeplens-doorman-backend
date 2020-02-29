@@ -324,11 +324,12 @@ def guess(event, context):
 
     res = get_faces(user_id)
 
+    image_type = res["Item"]["image_type"]
     user_name = res["Item"]["user_name"]
     real_name = res["Item"]["real_name"]
 
-    if user_name == "unknown":
-        print(user_name, key)
+    if image_type == "unknown":
+        print(user_id, user_name, real_name, key)
         move_unknown(key, user_id)
         return {}
 
