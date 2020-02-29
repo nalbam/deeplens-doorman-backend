@@ -393,6 +393,7 @@ def guess(event, context):
         else:
             print("detected", user_id, user_name, real_name, key)
             new_key = mave_detected(key, bounding_box, user_id)
+
             put_faces_image(user_id, new_key, image_url)
 
             text = "Detected {}".format(real_name)
