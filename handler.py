@@ -394,6 +394,10 @@ def guess(event, context):
             print("detected", user_id, user_name, real_name, key)
             new_key = mave_detected(key, bounding_box, user_id)
 
+            image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+                STORAGE_NAME, AWS_REGION, new_key
+            )
+
             put_faces_image(user_id, new_key, image_url)
 
             text = "Detected {}".format(real_name)
@@ -516,6 +520,10 @@ def train(event, context):
 
         new_key = move_trash(key)
 
+        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+            STORAGE_NAME, AWS_REGION, new_key
+        )
+
         put_faces(user_id, new_key, image_url, "ignored")
 
         text = "Ok, I ignored this image"
@@ -535,6 +543,10 @@ def train(event, context):
         print("Trained", key)
 
         new_key = move_trained(key)
+
+        image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
+            STORAGE_NAME, AWS_REGION, new_key
+        )
 
         put_faces(user_id, new_key, image_url, "trained", user_name, real_name)
 
