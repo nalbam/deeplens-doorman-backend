@@ -24,7 +24,7 @@ LINE_WIDTH = 2
 # from doorman import unknown
 
 
-s3 = boto3.resource("s3")
+s3 = boto3.client("s3")
 
 
 def new_path(key, path1, path2="0"):

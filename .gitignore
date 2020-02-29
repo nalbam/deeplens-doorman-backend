@@ -23,7 +23,7 @@ $RECYCLE.BIN/
 # pytest
 __pycache__
 .pytest_cache
-# Pipfile.lock
+Pipfile.lock
 
 # maven
 build/
@@ -33,7 +33,7 @@ target/
 # Nodejs
 dist/
 node_modules/
-# package-lock.json
+package-lock.json
 
 # eclipse
 .metadata/
