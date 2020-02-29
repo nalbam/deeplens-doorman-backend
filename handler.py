@@ -24,7 +24,7 @@ LINE_WIDTH = 2
 # from doorman import unknown
 
 
-s3 = boto3.client("s3")
+s3 = boto3.resource("s3")
 
 
 def new_path(key, path1, path2="0"):
@@ -32,16 +32,17 @@ def new_path(key, path1, path2="0"):
     return "{}/{}/{}".format(path1, path2, keys[len(keys) - 1])
 
 
-def copy_img(key, to, delete=True):
-    print("copy img", key, to)
+def copy_img(key, new_key, delete=True):
+    print("copy img", key, new_key)
 
     # copy
-    s3.Object(STORAGE_NAME, to).copy_from(CopySource="{}/{}".format(STORAGE_NAME, key))
-    s3.ObjectAcl(STORAGE_NAME, to).put(ACL="public-read")
+    s3.Object(STORAGE_NAME, new_key).copy_from(
+        CopySource="{}/{}".format(STORAGE_NAME, key)
+    )
+    s3.ObjectAcl(STORAGE_NAME, new_key).put(ACL="public-read")
 
     if delete == True:
         delete_img(key)
-    return to
 
 
 def delete_img(key):
