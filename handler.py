@@ -35,6 +35,8 @@ tbl = ddb.Table(TABLE_NAME)
 
 def new_path(key, path1, path2="0"):
     keys = key.split("/")
+    if path2 == "0":
+        return "{}/{}".format(path1, keys[len(keys) - 1])
     return "{}/{}/{}".format(path1, path2, keys[len(keys) - 1])
 
 
@@ -390,7 +392,7 @@ def unknown(event, context):
         put_faces(user_id, key, image_url)
 
     else:
-        res = index_faces(key, user_id)
+        res = index_faces(key)
 
         if len(res) == 0:
             # error detected, move to trash
