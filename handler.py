@@ -389,10 +389,10 @@ def guess(event, context):
 
         if image_type == "unknown":
             print("unknown", user_id, user_name, real_name, key)
-            move_unknown(key, bounding_box, user_id)
+            new_key = move_unknown(key, bounding_box, user_id)
         else:
             print("detected", user_id, user_name, real_name, key)
-            mave_detected(key, bounding_box, user_id)
+            new_key = mave_detected(key, bounding_box, user_id)
             put_faces_image(user_id, new_key, image_url)
 
             text = "Detected {}".format(real_name)
