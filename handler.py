@@ -54,10 +54,10 @@ def copy_img(key, new_key, delete=True):
     print("copy img", key, new_key)
 
     # copy
-    s3.Object(storage_name, new_key).copy_from(
-        CopySource="{}/{}".format(storage_name, key)
+    s3.Object(STORAGE_NAME, new_key).copy_from(
+        CopySource="{}/{}".format(STORAGE_NAME, key)
     )
-    s3.ObjectAcl(storage_name, new_key).put(ACL="public-read")
+    s3.ObjectAcl(STORAGE_NAME, new_key).put(ACL="public-read")
     # s3.copy_object(Bucket=STORAGE_NAME, CopySource=key, Key=new_key, ACL="public-read")
 
     if delete == True:
@@ -68,7 +68,7 @@ def delete_img(key):
     print("delete img", key)
 
     # delete
-    s3.Object(storage_name, key).delete()
+    s3.Object(STORAGE_NAME, key).delete()
     # s3.delete_object(Bucket=STORAGE_NAME, Key=key)
 
 
@@ -400,11 +400,14 @@ def unknown(event, context):
 
         if len(res["FaceRecords"]) == 0:
             # no known faces detected, let the users decide in slack
-            print("No matches found", key)
+            print("No index faces", key)
             move_trash(key)
             return {}
 
         user_id = res["FaceRecords"][0]["Face"]["FaceId"]
+        bounding_box = res["FaceRecords"][0]["Face"]["BoundingBox"]
+
+        print("Indexed faces", user_id, bounding_box)
 
         res = create_faces(user_id, key, image_url)
 
