@@ -16,7 +16,6 @@ STORAGE_NAME = os.environ.get("STORAGE_NAME", "deeplens-doorman-demo")
 TABLE_NAME = os.environ.get("TABLE_NAME", "deeplens-doorman-demo")
 
 LINE_COLOR = (255, 165, 20)
-LINE_WIDTH = 2
 
 
 # from doorman import guess
@@ -91,7 +90,9 @@ def make_rectangle(src_key, dst_key, box):
 
     left, top, right, bottom = get_bounding_box(width, height, box)
 
-    cv2.rectangle(src, (left, top), (right, bottom), LINE_COLOR, LINE_WIDTH)
+    line_width = int(width * 0.01)
+
+    cv2.rectangle(src, (left, top), (right, bottom), LINE_COLOR, line_width)
 
     # cv2.imwrite(dst_img, src)
     _, jpg_data = cv2.imencode(".jpg", src)
