@@ -6,9 +6,9 @@ import requests
 import time
 
 aws_region = os.environ["AWSREGION"]
-storage_name = os.environ["STORAGE_NAME"]
-slack_token = os.environ["SLACK_API_TOKEN"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+slack_token = os.environ["SLACK_API_TOKEN"]
+storage_name = os.environ["STORAGE_NAME"]
 table_name = os.environ["TABLE_NAME"]
 
 
@@ -128,14 +128,14 @@ def guess(event, context):
 
     new_key = move_to(key, "detected/{}".format(user_id))
 
-    auth = "Bearer {}".format(slack_token)
-
     text = "Detected {}".format(real_name)
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         storage_name, aws_region, new_key
     )
 
     put_faces(user_id, new_key, image_url)
+
+    auth = "Bearer {}".format(slack_token)
 
     message = {
         "channel": slack_channel_id,

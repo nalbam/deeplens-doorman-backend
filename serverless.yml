@@ -67,17 +67,17 @@ functions:
           path: faces/train
           method: post
 
-resources:
-  Resources:
-    S3Bucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${env:STORAGE_NAME}
-        LifecycleConfiguration:
-          Rules:
-            - ExpirationInDays: 3
-              Prefix: "/"
-              Status: Enabled
+# resources:
+#   Resources:
+#     S3Bucket:
+#       Type: AWS::S3::Bucket
+#       Properties:
+#         BucketName: ${env:STORAGE_NAME}
+#         LifecycleConfiguration:
+#           Rules:
+#             - ExpirationInDays: 3
+#               Prefix: "/"
+#               Status: Enabled
 
 plugins:
   - serverless-python-requirements
