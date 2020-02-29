@@ -90,7 +90,7 @@ def make_rectangle(src_key, dst_key, box):
 
     left, top, right, bottom = get_bounding_box(width, height, box)
 
-    line_width = int(width * 0.01)
+    line_width = int(width * 0.003)
 
     cv2.rectangle(src, (left, top), (right, bottom), LINE_COLOR, line_width)
 
