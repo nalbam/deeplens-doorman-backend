@@ -26,10 +26,27 @@ LINE_WIDTH = 2
 
 s3 = boto3.client("s3")
 
+rek = boto3.client("rekognition", region_name=AWS_REGION)
+
+ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+tbl = ddb.Table(TABLE_NAME)
+
 
 def new_path(key, path1, path2="0"):
     keys = key.split("/")
     return "{}/{}/{}".format(path1, path2, keys[len(keys) - 1])
+
+
+def move_trash(key):
+    print("move_trash", key)
+    new_key = new_path(key, "trash")
+    copy_img(key, new_key)
+
+
+def move_unknown(key, user_id="0"):
+    print("move_unknown", key)
+    new_key = new_path(key, "unknown", user_id)
+    copy_img(key, new_key)
 
 
 def copy_img(key, new_key, delete=True):
@@ -59,7 +76,10 @@ def make_rectangle(src_key, dst_key, box):
 
     src = cv2.imread(tmp_img, cv2.IMREAD_COLOR)
 
-    left, top, right, bottom = get_bounding_box(src.shape[1], src.shape[0], box)
+    width = src.shape[1]
+    height = src.shape[0]
+
+    left, top, right, bottom = get_bounding_box(width, height, box)
 
     cv2.rectangle(src, (left, top), (right, bottom), LINE_COLOR, LINE_WIDTH)
 
@@ -83,7 +103,10 @@ def make_crop(src_key, dst_key, box):
 
     src = cv2.imread(tmp_img, cv2.IMREAD_COLOR)
 
-    left, top, right, bottom = get_bounding_box(src.shape[1], src.shape[0], box)
+    width = src.shape[1]
+    height = src.shape[0]
+
+    left, top, right, bottom = get_bounding_box(width, height, box)
 
     dst = src.copy()
     dst = src[top:bottom, left:right]
@@ -113,7 +136,7 @@ def get_bounding_box(width, height, box, rate=0.1):
 
 def search_faces(key):
     try:
-        rek = boto3.client("rekognition", region_name=AWS_REGION)
+        # rek = boto3.client("rekognition", region_name=AWS_REGION)
         res = rek.search_faces_by_image(
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
@@ -129,14 +152,15 @@ def search_faces(key):
     return res
 
 
-def index_faces(key, image_id):
+def index_faces(key):
     try:
-        rek = boto3.client("rekognition", region_name=AWS_REGION)
+        # rek = boto3.client("rekognition", region_name=AWS_REGION)
         res = rek.index_faces(
             CollectionId=STORAGE_NAME,
-            Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key,}},
-            ExternalImageId=image_id,
+            Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
+            MaxFaces=1,
             DetectionAttributes=["DEFAULT"],
+            # ExternalImageId=image_id,
         )
     except Exception as ex:
         print("Error:", ex, key)
@@ -148,8 +172,8 @@ def index_faces(key, image_id):
 
 
 def get_faces(user_id):
-    ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    tbl = ddb.Table(TABLE_NAME)
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    # tbl = ddb.Table(TABLE_NAME)
 
     try:
         res = tbl.get_item(Key={"user_id": user_id})
@@ -163,12 +187,17 @@ def get_faces(user_id):
 
 
 def create_faces(
-    image_key, image_url, image_type="unknown", user_name="unknown", real_name="Unknown"
+    user_id,
+    image_key,
+    image_url,
+    image_type="unknown",
+    user_name="unknown",
+    real_name="Unknown",
 ):
-    ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    tbl = ddb.Table(TABLE_NAME)
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    # tbl = ddb.Table(TABLE_NAME)
 
-    user_id = hashlib.md5(image_key.encode("utf-8")).hexdigest()
+    # user_id = hashlib.md5(image_key.encode("utf-8")).hexdigest()
     latest = int(round(time.time() * 1000))
 
     try:
@@ -189,7 +218,7 @@ def create_faces(
 
     print("create_faces", res)
 
-    return user_id, res
+    return res
 
 
 def put_faces(
@@ -200,8 +229,8 @@ def put_faces(
     user_name="unknown",
     real_name="Unknown",
 ):
-    ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    tbl = ddb.Table(TABLE_NAME)
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    # tbl = ddb.Table(TABLE_NAME)
 
     latest = int(round(time.time() * 1000))
 
@@ -229,8 +258,8 @@ def put_faces(
 
 
 def put_faces_image(user_id, image_key, image_url, image_type="detected"):
-    ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    tbl = ddb.Table(TABLE_NAME)
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    # tbl = ddb.Table(TABLE_NAME)
 
     latest = int(round(time.time() * 1000))
 
@@ -263,32 +292,32 @@ def guess(event, context):
 
     if len(res) == 0:
         # error detected, move to trash
-        print("Error", key)
-        new_key = new_path(key, "trash")
-        copy_img(key, new_key)
+        print("No faces", key)
+        move_trash(key)
         return {}
 
     if len(res["FaceMatches"]) == 0:
         # no known faces detected, let the users decide in slack
         print("No matches found", key)
-        new_key = new_path(key, "unknown")
-        copy_img(key, new_key)
+        move_unknown(key)
         return {}
 
     # known faces detected, send welcome message
 
-    user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
+    # user_id = res["FaceMatches"][0]["Face"]["ExternalImageId"]
+    user_id = res["FaceMatches"][0]["Face"]["FaceId"]
     bounding_box = res["SearchedFaceBoundingBox"]
+
+    print("Face found", face_id, bounding_box)
 
     res = get_faces(user_id)
 
     user_name = res["Item"]["user_name"]
     real_name = res["Item"]["real_name"]
 
-    if user_name == "unknown" or user_name == "ignored":
+    if user_name == "unknown":
         print(user_name, key)
-        new_key = new_path(key, user_name, user_id)
-        copy_img(key, new_key)
+        move_unknown(key, user_id)
         return {}
 
     print("Face found", user_name, real_name)
@@ -351,9 +380,23 @@ def unknown(event, context):
         put_faces(user_id, key, image_url)
 
     else:
-        user_id, res = create_faces("unknown", "Unknown", key, image_url)
+        res = index_faces(key, user_id)
 
-        index_faces(key, user_id)
+        if len(res) == 0:
+            # error detected, move to trash
+            print("No faces", key)
+            move_trash(key)
+            return {}
+
+        if len(res["FaceRecords"]) == 0:
+            # no known faces detected, let the users decide in slack
+            print("No matches found", key)
+            move_trash(key)
+            return {}
+
+        user_id = res["FaceRecords"][0]["Face"]["FaceId"]
+
+        res = create_faces(user_id, key, image_url)
 
     auth = "Bearer {}".format(SLACK_API_TOKEN)
 
