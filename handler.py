@@ -452,51 +452,51 @@ def unknown(event, context):
         put_faces(user_id, key, image_url)
 
     text = "I don't know who this is, can you tell me?"
-    send_message(text, key)
+    # send_message(text, key)
 
-    # message = {
-    #     "channel": SLACK_CHANNEL_ID,
-    #     "text": text,
-    #     "attachments": [
-    #         {
-    #             "image_url": image_url,
-    #             "fallback": "Nope?",
-    #             "attachment_type": "default",
-    #             # "callback_id": user_id,
-    #             # "actions": [
-    #             #     {
-    #             #         "name": "username",
-    #             #         "text": "Select a username...",
-    #             #         "type": "select",
-    #             #         "data_source": "users",
-    #             #     },
-    #             #     # {
-    #             #     #     "name": "discard",
-    #             #     #     "text": "Ignore",
-    #             #     #     "style": "danger",
-    #             #     #     "type": "button",
-    #             #     #     "value": "ignore",
-    #             #     #     # "confirm": {
-    #             #     #     #     "title": "Are you sure?",
-    #             #     #     #     "text": "Are you sure you want to ignore and delete this image?",
-    #             #     #     #     "ok_text": "Yes",
-    #             #     #     #     "dismiss_text": "No",
-    #             #     #     # },
-    #             #     # },
-    #             # ],
-    #         },
-    #     ],
-    # }
-    # # print(message)
-    # res = requests.post(
-    #     "https://slack.com/api/chat.postMessage",
-    #     headers={
-    #         "Content-Type": "application/json;charset=UTF-8",
-    #         "Authorization": auth,
-    #     },
-    #     json=message,
-    # )
-    # print(res.json())
+    message = {
+        "channel": SLACK_CHANNEL_ID,
+        "text": text,
+        "attachments": [
+            {
+                "image_url": image_url,
+                "fallback": "Nope?",
+                "attachment_type": "default",
+                "callback_id": user_id,
+                "actions": [
+                    {
+                        "name": "username",
+                        "text": "Select a username...",
+                        "type": "select",
+                        "data_source": "users",
+                    },
+                    # {
+                    #     "name": "discard",
+                    #     "text": "Ignore",
+                    #     "style": "danger",
+                    #     "type": "button",
+                    #     "value": "ignore",
+                    #     # "confirm": {
+                    #     #     "title": "Are you sure?",
+                    #     #     "text": "Are you sure you want to ignore and delete this image?",
+                    #     #     "ok_text": "Yes",
+                    #     #     "dismiss_text": "No",
+                    #     # },
+                    # },
+                ],
+            },
+        ],
+    }
+    # print(message)
+    res = requests.post(
+        "https://slack.com/api/chat.postMessage",
+        headers={
+            "Content-Type": "application/json;charset=UTF-8",
+            "Authorization": auth,
+        },
+        json=message,
+    )
+    print(res.json())
 
     return {}
 
