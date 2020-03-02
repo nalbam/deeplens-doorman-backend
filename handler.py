@@ -454,6 +454,8 @@ def unknown(event, context):
     text = "I don't know who this is, can you tell me?"
     # send_message(text, key)
 
+    auth = "Bearer {}".format(SLACK_API_TOKEN)
+
     message = {
         "channel": SLACK_CHANNEL_ID,
         "text": text,
