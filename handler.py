@@ -389,7 +389,7 @@ def guess(event, context):
     user_name = res["Item"]["user_name"]
     real_name = res["Item"]["real_name"]
 
-    if image_type == "unknown":
+    if image_type == "unknown" or image_type == "ignored":
         print("unknown", user_id, user_name, real_name, key)
         new_key = move_unknown(key, bounding_box, user_id)
     else:
