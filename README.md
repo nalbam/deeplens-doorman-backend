@@ -1,5 +1,11 @@
 # deeplens-doorman-backend
 
+## clone
+
+```bash
+git clone https://github.com/nalbam/deeplens-doorman-backend
+```
+
 ## env
 
 ```bash
