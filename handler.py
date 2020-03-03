@@ -468,27 +468,27 @@ def unknown(event, context):
                 "image_url": image_url,
                 "fallback": "Nope?",
                 "attachment_type": "default",
-                "callback_id": user_id,
-                "actions": [
-                    {
-                        "name": "username",
-                        "text": "Select a username...",
-                        "type": "select",
-                        "data_source": "users",
-                    },
-                    {
-                        "name": "discard",
-                        "text": "Ignore",
-                        "style": "danger",
-                        "type": "button",
-                        "value": "ignore",
-                        # "confirm": {
-                        #     "title": "Are you sure?",
-                        #     "text": "Are you sure you want to ignore and delete this image?",
-                        #     "ok_text": "Yes",
-                        #     "dismiss_text": "No",
-                        # },
-                    },
+                # "callback_id": user_id,
+                # "actions": [
+                #     {
+                #         "name": "username",
+                #         "text": "Select a username...",
+                #         "type": "select",
+                #         "data_source": "users",
+                #     },
+                #     {
+                #         "name": "discard",
+                #         "text": "Ignore",
+                #         "style": "danger",
+                #         "type": "button",
+                #         "value": "ignore",
+                #         # "confirm": {
+                #         #     "title": "Are you sure?",
+                #         #     "text": "Are you sure you want to ignore and delete this image?",
+                #         #     "ok_text": "Yes",
+                #         #     "dismiss_text": "No",
+                #         # },
+                #     },
                 ],
             },
         ],
