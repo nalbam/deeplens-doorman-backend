@@ -200,7 +200,7 @@ def index_faces(key):
         res = rek.index_faces(
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
-            MaxFaces=MAX_FACES,
+            MaxFaces=1,
             DetectionAttributes=["DEFAULT"],
             # ExternalImageId=image_id,
         )
