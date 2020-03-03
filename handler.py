@@ -366,20 +366,24 @@ def guess(event, context):
 
     bounding_box = res["SearchedFaceBoundingBox"]
 
-    if len(res["FaceMatches"]) == 0:
+    face_matches = len(res["FaceMatches"])
+
+    if face_matches == 0:
         # no known faces detected, let the users decide in slack
         print("No matches found", key)
         move_unknown(key, bounding_box)
         delete_img(key)
         return {}
 
-    # known faces detected, send welcome message
+    print("face matches", face_matches)
 
-    user_id = res["FaceMatches"][0]["Face"]["FaceId"]
+    # known faces detected, send welcome message
 
     # for face in res["FaceMatches"]:
     #     user_id = face["Face"]["FaceId"]
     #     bounding_box = face["Face"]["BoundingBox"]
+
+    user_id = res["FaceMatches"][0]["Face"]["FaceId"]
 
     print("face matches", user_id, bounding_box)
 
