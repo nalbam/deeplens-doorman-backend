@@ -183,7 +183,7 @@ def search_faces(key):
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
             MaxFaces=MAX_FACES,
-            FaceMatchThreshold=80,
+            FaceMatchThreshold=90,
         )
     except Exception as ex:
         print("Error:", ex, key)
