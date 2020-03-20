@@ -102,7 +102,7 @@ def has_thermal(key):
     # exist
     try:
         s3.Object(STORAGE_NAME, key).load()
-    except botocore.exceptions.ClientError as e:
+    except Exception as ex:
         return "x"
     else:
         return "o"
