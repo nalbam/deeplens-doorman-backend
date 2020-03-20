@@ -104,8 +104,8 @@ def has_thermal(key):
     objs = list(bucket.objects.filter(Prefix=key))
 
     if len(objs) > 0 and objs[0].key == key:
-        return True
-    return False
+        return "o"
+    return "x"
 
 
 def make_rectangle(src_key, dst_key, box):
