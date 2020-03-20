@@ -8,8 +8,8 @@ provider:
 
   region: ap-northeast-1
 
-  memorySize: 2048
-  timeout: 10
+  memorySize: 2560
+  timeout: 20
 
   # you can overwrite defaults here
   stage: demo
