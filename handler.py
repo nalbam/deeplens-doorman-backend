@@ -41,32 +41,23 @@ def new_path(key, path1, path2="0"):
     return "{}/{}/{}".format(path1, path2, keys[len(keys) - 1])
 
 
-def gen_name(key):
-    keys = key.split(".")
-    if len(keys) == 0:
-        ext = "jpg"
-    else:
-        ext = keys[len(keys) - 1]
-    return "{}.{}".format(uuid.uuid4(), ext)
-
-
 def move_trash(key):
     print("move_trash", key)
-    new_key = new_path(gen_name(key), "trash")
+    new_key = new_path(key, "trash")
     copy_img(key, new_key)
     return new_key
 
 
 def move_trained(key):
     print("move_trained", key)
-    new_key = new_path(gen_name(key), "trained")
+    new_key = new_path(key, "trained")
     copy_img(key, new_key)
     return new_key
 
 
 def move_unknown(key, box, user_id="0"):
     print("move_unknown", key)
-    new_key = new_path(gen_name(key), "unknown", user_id)
+    new_key = new_path(key, "unknown", user_id)
     # copy_img(key, new_key)
     make_crop(key, new_key, box)
     return new_key
@@ -74,7 +65,7 @@ def move_unknown(key, box, user_id="0"):
 
 def mave_detected(key, box, user_id="0"):
     print("mave_detected", key)
-    new_key = new_path(gen_name(key), "detected", user_id)
+    new_key = new_path(key, "detected", user_id)
     # copy_img(key, new_key)
     make_rectangle(key, new_key, box)
     return new_key
