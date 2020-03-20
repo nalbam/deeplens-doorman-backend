@@ -314,16 +314,19 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     # tbl = ddb.Table(TABLE_NAME)
 
+    thermal = has_thermal(image_key)
+
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, latest=:latest",
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, latest=:latest",
             ExpressionAttributeValues={
                 ":image_key": image_key,
                 ":image_url": image_url,
                 ":image_type": image_type,
+                ":thermal": thermal,
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
@@ -332,7 +335,7 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
         print("Error:", ex, user_id)
         res = []
 
-    print("put_faces", res)
+    print("put_faces_image", res)
 
     return res
 
