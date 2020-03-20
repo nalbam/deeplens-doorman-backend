@@ -63,8 +63,8 @@ def move_unknown(key, box, user_id="0"):
     return new_key
 
 
-def mave_detected(key, box, user_id="0"):
-    print("mave_detected", key)
+def move_detected(key, box, user_id="0"):
+    print("move_detected", key)
     new_key = new_path(key, "detected", user_id)
     # copy_img(key, new_key)
     make_rectangle(key, new_key, box)
@@ -410,7 +410,7 @@ def guess(event, context):
         new_key = move_unknown(key, bounding_box, user_id)
     else:
         print("detected", user_id, user_name, real_name, key)
-        new_key = mave_detected(key, bounding_box, user_id)
+        new_key = move_detected(key, bounding_box, user_id)
 
         image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
             STORAGE_NAME, AWS_REGION, new_key
