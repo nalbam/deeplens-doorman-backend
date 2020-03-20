@@ -100,12 +100,12 @@ def has_thermal(key):
     key = "thermal/{}".format(keys[len(keys) - 1])
 
     # exist
-    bucket = s3.Bucket(STORAGE_NAME)
-    objs = list(bucket.objects.filter(Prefix=key))
-
-    if len(objs) > 0 and objs[0].key == key:
+    try:
+        s3.Object(STORAGE_NAME, key).load()
+    except botocore.exceptions.ClientError as e:
+        return "x"
+    else:
         return "o"
-    return "x"
 
 
 def make_rectangle(src_key, dst_key, box):
