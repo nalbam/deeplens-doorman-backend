@@ -93,6 +93,21 @@ def delete_img(key):
     # s3.delete_object(Bucket=STORAGE_NAME, Key=key)
 
 
+def has_thermal(key):
+    print("has thermal", key)
+
+    keys = key.split("/")
+    key = "thermal/{}".format(keys[len(keys) - 1])
+
+    # exist
+    bucket = s3.Bucket(STORAGE_NAME)
+    objs = list(bucket.objects.filter(Prefix=key))
+
+    if len(objs) > 0 and objs[0].key == key:
+        return True
+    return False
+
+
 def make_rectangle(src_key, dst_key, box):
     client = boto3.client("s3")
 
@@ -230,6 +245,8 @@ def create_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     # tbl = ddb.Table(TABLE_NAME)
 
+    thermal = has_thermal(image_key)
+
     latest = int(round(time.time() * 1000))
 
     try:
@@ -241,6 +258,7 @@ def create_faces(
                 "image_key": image_key,
                 "image_url": image_url,
                 "image_type": image_type,
+                "thermal": thermal,
                 "latest": latest,
             }
         )
