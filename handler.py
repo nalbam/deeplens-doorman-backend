@@ -349,16 +349,16 @@ def create_history(
 
     thermal = has_thermal(image_key)
 
-    visited = int(round(time.time() * 1000))
+    latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.put_item(
             Item={
                 "user_id": user_id,
-                "visited": visited,
                 "image_key": image_key,
                 "image_url": image_url,
                 "thermal": thermal,
+                "latest": latest,
             }
         )
     except Exception as ex:
