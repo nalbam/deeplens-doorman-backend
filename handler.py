@@ -358,6 +358,7 @@ def create_history(
                 "image_key": image_key,
                 "image_url": image_url,
                 "thermal": thermal,
+                "visited": latest,
                 "latest": latest,
             }
         )
