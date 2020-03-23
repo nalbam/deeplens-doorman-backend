@@ -29,6 +29,8 @@ aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREG
 ## deploy
 
 ```bash
+git pull
+
 # pip install pyenv
 # pyenv install 3.7.6
 pyenv shell 3.7.6
