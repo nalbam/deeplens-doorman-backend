@@ -13,7 +13,8 @@ AWS_REGION = os.environ.get("AWSREGION", "ap-northeast-1")
 SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "")
 SLACK_API_TOKEN = os.environ.get("SLACK_API_TOKEN", "")
 STORAGE_NAME = os.environ.get("STORAGE_NAME", "deeplens-doorman-demo")
-TABLE_NAME = os.environ.get("TABLE_NAME", "deeplens-doorman-demo")
+TABLE_USERS = os.environ.get("TABLE_USERS", "doorman-users-demo")
+TABLE_HISTORY = os.environ.get("TABLE_HISTORY", "doorman-history-demo")
 
 LINE_COLOR = (255, 165, 20)
 
@@ -31,7 +32,7 @@ s3 = boto3.resource("s3")
 rek = boto3.client("rekognition", region_name=AWS_REGION)
 
 ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-tbl = ddb.Table(TABLE_NAME)
+# tbl = ddb.Table(TABLE_USERS)
 
 
 def new_path(key, path1, path2="0"):
@@ -221,7 +222,7 @@ def index_faces(key):
 
 def get_faces(user_id):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    # tbl = ddb.Table(TABLE_NAME)
+    tbl = ddb.Table(TABLE_USERS)
 
     try:
         res = tbl.get_item(Key={"user_id": user_id})
@@ -243,7 +244,7 @@ def create_faces(
     real_name="Unknown",
 ):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    # tbl = ddb.Table(TABLE_NAME)
+    tbl = ddb.Table(TABLE_USERS)
 
     thermal = has_thermal(image_key)
 
@@ -280,7 +281,7 @@ def put_faces(
     real_name="Unknown",
 ):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    # tbl = ddb.Table(TABLE_NAME)
+    tbl = ddb.Table(TABLE_USERS)
 
     thermal = has_thermal(image_key)
 
@@ -312,7 +313,7 @@ def put_faces(
 
 def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
-    # tbl = ddb.Table(TABLE_NAME)
+    tbl = ddb.Table(TABLE_USERS)
 
     thermal = has_thermal(image_key)
 
@@ -336,6 +337,35 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
         res = []
 
     print("put_faces_image", res)
+
+    return res
+
+
+def create_history(
+    user_id, image_key, image_url,
+):
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    tbl = ddb.Table(TABLE_HISTORY)
+
+    thermal = has_thermal(image_key)
+
+    visted = int(round(time.time() * 1000))
+
+    try:
+        res = tbl.put_item(
+            Item={
+                "user_id": user_id,
+                "visted": visted,
+                "image_key": image_key,
+                "image_url": image_url,
+                "thermal": thermal,
+            }
+        )
+    except Exception as ex:
+        print("Error:", ex, user_id)
+        res = []
+
+    print("create_history", res)
 
     return res
 
@@ -421,6 +451,8 @@ def guess(event, context):
 
         put_faces_image(user_id, new_key, image_url)
 
+        create_history(user_id, new_key, image_url)
+
         text = "Detected {}".format(real_name)
         send_message(text, new_key)
 
@@ -468,7 +500,9 @@ def unknown(event, context):
 
         # new_key = move_unknown(key, bounding_box, user_id)
 
-        put_faces(user_id, key, image_url)
+        create_faces(user_id, key, image_url)
+
+    create_history(user_id, key, image_url)
 
     text = "I don't know who this is, can you tell me?"
     # send_message(text, key)
