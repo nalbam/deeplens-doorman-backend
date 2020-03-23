@@ -349,13 +349,13 @@ def create_history(
 
     thermal = has_thermal(image_key)
 
-    visted = int(round(time.time() * 1000))
+    visited = int(round(time.time() * 1000))
 
     try:
         res = tbl.put_item(
             Item={
                 "user_id": user_id,
-                "visted": visted,
+                "visited": visited,
                 "image_key": image_key,
                 "image_url": image_url,
                 "thermal": thermal,
