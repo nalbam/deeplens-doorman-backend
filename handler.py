@@ -111,7 +111,7 @@ def has_thermal(key):
     except Exception as ex:
         print("Error:", ex, key)
 
-    return "x", "0"
+    return "x", "-"
 
 
 def make_rectangle(src_key, dst_key, box):
