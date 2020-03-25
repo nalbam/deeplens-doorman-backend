@@ -98,16 +98,20 @@ def delete_img(key):
 def has_thermal(key):
     print("has thermal", key)
 
-    keys = key.split("/")
-    key = "thermal/{}".format(keys[len(keys) - 1])
+    arr = key.split("/")
+    img = arr[len(arr) - 1].split(".")
+    key = "meta/{}".format(img[0])
 
-    # exist
     try:
-        s3.Object(STORAGE_NAME, key).load()
+        content_object = s3.Object(STORAGE_NAME, key)
+        file_content = content_object.get()["Body"].read().decode("utf-8")
+        json_content = json.loads(file_content)
+
+        return "o", json_content["temperature"]
     except Exception as ex:
-        return "x"
-    else:
-        return "o"
+        print("Error:", ex, key)
+
+    return "x", "0"
 
 
 def make_rectangle(src_key, dst_key, box):
@@ -247,7 +251,7 @@ def create_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal = has_thermal(image_key)
+    thermal, temperature = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -261,6 +265,7 @@ def create_faces(
                 "image_url": image_url,
                 "image_type": image_type,
                 "thermal": thermal,
+                "temperature": temperature,
                 "latest": latest,
             }
         )
@@ -284,14 +289,14 @@ def put_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal = has_thermal(image_key)
+    thermal, temperature = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, latest=:latest",
+            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, latest=:latest",
             ExpressionAttributeValues={
                 ":user_name": user_name,
                 ":real_name": real_name,
@@ -299,6 +304,7 @@ def put_faces(
                 ":image_url": image_url,
                 ":image_type": image_type,
                 ":thermal": thermal,
+                ":temperature": temperature,
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
@@ -316,19 +322,20 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal = has_thermal(image_key)
+    thermal, temperature = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, latest=:latest",
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, latest=:latest",
             ExpressionAttributeValues={
                 ":image_key": image_key,
                 ":image_url": image_url,
                 ":image_type": image_type,
                 ":thermal": thermal,
+                ":temperature": temperature,
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
@@ -348,7 +355,7 @@ def create_history(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_HISTORY)
 
-    thermal = has_thermal(image_key)
+    thermal, temperature = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -359,6 +366,7 @@ def create_history(
                 "image_key": image_key,
                 "image_url": image_url,
                 "thermal": thermal,
+                "temperature": temperature,
                 "visited": latest,
                 "latest": latest,
             }
