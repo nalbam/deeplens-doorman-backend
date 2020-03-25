@@ -107,7 +107,7 @@ def has_thermal(key):
         file_content = content_object.get()["Body"].read().decode("utf-8")
         json_content = json.loads(file_content)
 
-        return "o", json_content["temperature"]
+        return "o", "{} °C".format(json_content["temperature"])
     except Exception as ex:
         print("Error:", ex, key)
 
