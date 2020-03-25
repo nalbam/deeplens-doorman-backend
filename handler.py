@@ -100,7 +100,7 @@ def has_thermal(key):
 
     arr = key.split("/")
     img = arr[len(arr) - 1].split(".")
-    key = "meta/{}".format(img[0])
+    key = "meta/{}.json".format(img[0])
 
     try:
         content_object = s3.Object(STORAGE_NAME, key)
