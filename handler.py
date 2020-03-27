@@ -212,7 +212,8 @@ def index_faces(key):
         res = rek.index_faces(
             CollectionId=STORAGE_NAME,
             Image={"S3Object": {"Bucket": STORAGE_NAME, "Name": key}},
-            MaxFaces=1,
+            MaxFaces=MAX_FACES,
+            QualityFilter="AUTO",
             DetectionAttributes=["DEFAULT"],
             # ExternalImageId=image_id,
         )
@@ -423,14 +424,14 @@ def guess(event, context):
 
     face_matches = len(res["FaceMatches"])
 
+    print("face matches", face_matches)
+
     if face_matches == 0:
         # no known faces detected, let the users decide in slack
         print("No matches found", key)
         move_unknown(key, bounding_box)
         delete_img(key)
         return {}
-
-    print("face matches", face_matches)
 
     # known faces detected, send welcome message
 
@@ -497,16 +498,20 @@ def unknown(event, context):
             move_trash(key)
             return {}
 
-        if len(res["FaceRecords"]) == 0:
+        indexed_faces = len(res["FaceRecords"])
+
+        print("indexed faces", indexed_faces)
+
+        if indexed_faces == 0:
             # no known faces detected, let the users decide in slack
-            print("No index faces", key)
+            print("No indexed faces", key)
             move_trash(key)
             return {}
 
         user_id = res["FaceRecords"][0]["Face"]["FaceId"]
         bounding_box = res["FaceRecords"][0]["Face"]["BoundingBox"]
 
-        print("Indexed faces", user_id, bounding_box)
+        print("indexed faces", user_id, bounding_box)
 
         # new_key = move_unknown(key, bounding_box, user_id)
 

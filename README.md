@@ -22,8 +22,8 @@ export TABLE_HISTORY="doorman-history-demo"
 ```bash
 # aws s3 mb s3://${STORAGE_NAME} --region ${AWSREGION}
 
-# aws rekognition delete-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
-aws rekognition create-collection --collection-id $STORAGE_NAME --region $AWSREGION | jq .
+# aws rekognition delete-collection --collection-id ${STORAGE_NAME} --region ${AWSREGION} | jq .
+aws rekognition create-collection --collection-id ${STORAGE_NAME} --region ${AWSREGION} | jq .
 ```
 
 ## deploy
@@ -38,4 +38,21 @@ pyenv shell 3.7.6
 # npm install -g serverless
 # sls plugin install -n serverless-python-requirements
 sls deploy
+```
+
+## rekognition
+
+```bash
+aws rekognition detect-faces \
+    --image "{\"S3Object\":{\"Bucket\":\"${STORAGE_NAME}\",\"Name\":\"photos/twice.jpg\"}}" \
+    --region ${AWSREGION} | jq .
+
+aws rekognition index-faces \
+    --image "{\"S3Object\":{\"Bucket\":\"${STORAGE_NAME}\",\"Name\":\"photos/twice.jpg\"}}" \
+    --collection-id ${STORAGE_NAME} \
+    --max-faces 2 \
+    --quality-filter "AUTO" \
+    --detection-attributes "DEFAULT" \
+    --external-image-id "twice.jpg" \
+    --region ${AWSREGION} | jq .
 ```
