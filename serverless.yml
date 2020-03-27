@@ -70,6 +70,10 @@ functions:
       - http:
           path: faces/train
           method: post
+  clean:
+    handler: handler.clean
+    events:
+      - schedule: cron(0 20 * * ? *)
 
 # resources:
 #   Resources:

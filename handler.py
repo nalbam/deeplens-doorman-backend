@@ -623,3 +623,9 @@ def train(event, context):
         send_message(text, new_key)
 
     return {"statusCode": 200}
+
+
+def clean(event, context):
+    print("Clean")
+
+    return {}
