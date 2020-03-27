@@ -21,11 +21,6 @@ LINE_COLOR = (255, 165, 20)
 MAX_FACES = 3
 
 
-# from doorman import guess
-# from doorman import train
-# from doorman import unknown
-
-
 # s3 = boto3.client("s3")
 s3 = boto3.resource("s3")
 
@@ -510,6 +505,7 @@ def unknown(event, context):
 
         user_id = res["FaceRecords"][0]["Face"]["FaceId"]
         bounding_box = res["FaceRecords"][0]["Face"]["BoundingBox"]
+        # confidence = res["FaceRecords"][0]["Face"]["Confidence"]
 
         print("indexed faces", user_id, bounding_box)
 
