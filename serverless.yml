@@ -6,7 +6,7 @@ provider:
   name: aws
   runtime: python3.7
 
-  region: ap-northeast-1
+  region: ${env:AWSREGION}
 
   memorySize: 2560
   timeout: 20
