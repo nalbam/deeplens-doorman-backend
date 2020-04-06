@@ -1,5 +1,7 @@
 #!/bin/sh
 
+sudo yum install -y jq
+
 git clone https://github.com/pyenv/pyenv.git ~/.pyenv
 
 export PYENV_ROOT="$HOME/.pyenv"
