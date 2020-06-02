@@ -13,6 +13,8 @@ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nf
 
 . ~/.bashrc
 
+pip install pipenv
+
 pyenv install 3.7.6
 pyenv global 3.7.6
 
