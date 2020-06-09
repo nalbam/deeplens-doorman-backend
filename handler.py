@@ -1,17 +1,22 @@
 import boto3
 import cv2
-import json
 import os
 import requests
 import time
 import uuid
 
+# import json
+import simplejson as json
+
 from urllib.parse import parse_qs
+
+from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Key
 
 
 AWS_REGION = os.environ.get("AWSREGION", "ap-northeast-1")
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "")
 SLACK_API_TOKEN = os.environ.get("SLACK_API_TOKEN", "")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "")
 STORAGE_NAME = os.environ.get("STORAGE_NAME", "deeplens-doorman-demo")
 TABLE_USERS = os.environ.get("TABLE_USERS", "doorman-users-demo")
 TABLE_HISTORY = os.environ.get("TABLE_HISTORY", "doorman-history-demo")
@@ -98,15 +103,15 @@ def has_thermal(key):
     key = "meta/{}.json".format(img[0])
 
     try:
-        content_object = s3.Object(STORAGE_NAME, key)
-        file_content = content_object.get()["Body"].read().decode("utf-8")
-        json_content = json.loads(file_content)
+        o = s3.Object(STORAGE_NAME, key)
+        f = o.get()["Body"].read().decode("utf-8")
+        j = json.loads(f)
 
-        return "o", "{} °C".format(json_content["temperature"])
+        return "o", "{} °C".format(j["temperature"]), j["uuid"]
     except Exception as ex:
-        print("Error:", ex, key)
+        print("Error has_thermal:", ex, key)
 
-    return "x", "-"
+    return "x", "-", "unknown"
 
 
 def make_rectangle(src_key, dst_key, box):
@@ -193,7 +198,7 @@ def search_faces(key):
             FaceMatchThreshold=90,
         )
     except Exception as ex:
-        print("Error:", ex, key)
+        print("Error search_faces:", ex, key)
         res = []
 
     print("search_faces", res)
@@ -213,7 +218,7 @@ def index_faces(key):
             # ExternalImageId=image_id,
         )
     except Exception as ex:
-        print("Error:", ex, key)
+        print("Error index_faces:", ex, key)
         res = []
 
     print("index_faces", res)
@@ -228,12 +233,64 @@ def get_faces(user_id):
     try:
         res = tbl.get_item(Key={"user_id": user_id})
     except Exception as ex:
-        print("Error:", ex, user_id)
+        print("Error get_faces:", ex, user_id)
         res = []
 
     print("get_faces", res)
 
     return res
+
+
+def get_users():
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    tbl = ddb.Table(TABLE_USERS)
+
+    try:
+        # 30 min
+        latest = int(round(time.time() * 1000)) - (30 * 60 * 1000)
+
+        # res = tbl.scan(
+        #     # IndexName="users_index", Limit=5
+        # )
+
+        res = tbl.query(
+            KeyConditionExpression=Key("image_type").eq("unknown")
+            & Key("latest").gte(latest),
+            IndexName="latest_index",
+            ScanIndexForward=False,  # true = asc, false = desc
+            Limit=5,
+        )
+    except Exception as ex:
+        print("Error get_users:", ex)
+        res = []
+
+    print("get_users", res)
+
+    return res["Items"]
+
+
+def get_history(user_id):
+    # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    tbl = ddb.Table(TABLE_HISTORY)
+
+    try:
+        # 30 days
+        visited = int(round(time.time() * 1000)) - (30 * 24 * 60 * 60 * 1000)
+
+        res = tbl.query(
+            KeyConditionExpression=Key("user_id").eq(user_id)
+            & Key("visited").gte(visited),
+            IndexName="visited_index",
+            ScanIndexForward=False,  # true = asc, false = desc
+            Limit=30,
+        )
+    except Exception as ex:
+        print("Error get_history:", ex, user_id)
+        res = []
+
+    print("get_history", res)
+
+    return res["Items"]
 
 
 def create_faces(
@@ -247,7 +304,7 @@ def create_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature = has_thermal(image_key)
+    thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -262,11 +319,12 @@ def create_faces(
                 "image_type": image_type,
                 "thermal": thermal,
                 "temperature": temperature,
+                "device_id": device_id,
                 "latest": latest,
             }
         )
     except Exception as ex:
-        print("Error:", ex, user_id)
+        print("Error create_faces:", ex, user_id)
         res = []
 
     print("create_faces", res)
@@ -285,14 +343,14 @@ def put_faces(
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature = has_thermal(image_key)
+    thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, latest=:latest",
+            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
             ExpressionAttributeValues={
                 ":user_name": user_name,
                 ":real_name": real_name,
@@ -301,12 +359,13 @@ def put_faces(
                 ":image_type": image_type,
                 ":thermal": thermal,
                 ":temperature": temperature,
+                ":device_id": device_id,
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
         )
     except Exception as ex:
-        print("Error:", ex, user_id)
+        print("Error put_faces:", ex, user_id)
         res = []
 
     print("put_faces", res)
@@ -318,26 +377,27 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature = has_thermal(image_key)
+    thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, latest=:latest",
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
             ExpressionAttributeValues={
                 ":image_key": image_key,
                 ":image_url": image_url,
                 ":image_type": image_type,
                 ":thermal": thermal,
                 ":temperature": temperature,
+                ":device_id": device_id,
                 ":latest": latest,
             },
             ReturnValues="UPDATED_NEW",
         )
     except Exception as ex:
-        print("Error:", ex, user_id)
+        print("Error put_faces_image:", ex, user_id)
         res = []
 
     print("put_faces_image", res)
@@ -345,13 +405,11 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     return res
 
 
-def create_history(
-    user_id, image_key, image_url,
-):
+def create_history(user_id, image_key, image_url):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_HISTORY)
 
-    thermal, temperature = has_thermal(image_key)
+    thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -363,12 +421,13 @@ def create_history(
                 "image_url": image_url,
                 "thermal": thermal,
                 "temperature": temperature,
+                "device_id": device_id,
                 "visited": latest,
                 "latest": latest,
             }
         )
     except Exception as ex:
-        print("Error:", ex, user_id)
+        print("Error create_history:", ex, user_id)
         res = []
 
     print("create_history", res)
@@ -515,8 +574,8 @@ def unknown(event, context):
 
     create_history(user_id, key, image_url)
 
-    text = "I don't know who this is, can you tell me?"
-    # send_message(text, key)
+    # text = "I don't know who this is, can you tell me?"
+    text = "새로운 사람이 감지 되었습니다."
 
     auth = "Bearer {}".format(SLACK_API_TOKEN)
 
@@ -624,6 +683,34 @@ def train(event, context):
         send_message(text, new_key)
 
     return {"statusCode": 200}
+
+
+def users(event, context):
+    # print(event['body'])
+    # data = parse_qs(event["body"])
+    # data = json.loads(data["payload"][0])
+    # print(data)
+
+    users = get_users()
+    history = []
+
+    if len(users) > 0:
+        print("users[0]", users[0]["user_id"])
+
+        history = get_history(users[0]["user_id"])
+
+    result = {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps({"statusCode": 200, "users": users, "history": history}),
+    }
+
+    print("result", result)
+
+    return result
 
 
 def clean(event, context):

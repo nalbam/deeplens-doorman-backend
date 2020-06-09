@@ -9,7 +9,7 @@ name = "pypi"
 
 "opencv-python" = "*"
 "requests" = "*"
-
+"simplejson" = "*"
 
 [dev-packages]
 

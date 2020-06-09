@@ -18,16 +18,16 @@ provider:
   iamRoleStatements:
     - Effect: "Allow"
       Action:
+        - "s3:*"
+      Resource:
+        - "arn:aws:s3:::${env:STORAGE_NAME}/*"
+    - Effect: "Allow"
+      Action:
         - "rekognition:DetectFaces"
         - "rekognition:SearchFacesByImage"
         - "rekognition:IndexFaces"
       Resource: "*"
     - Effect: "Allow"
-      Action:
-        - "s3:*"
-      Resource:
-        - "arn:aws:s3:::${env:STORAGE_NAME}/*"
-    - Effect: Allow
       Action: # Gives permission to DynamoDB tables in a specific region
         - dynamodb:Query
         - dynamodb:Scan
@@ -68,24 +68,89 @@ functions:
     handler: handler.train
     events:
       - http:
-          path: faces/train
-          method: post
+          path: train
+          method: POST
+  users:
+    handler: handler.users
+    events:
+      - http:
+          path: users
+          method: GET
+          cors: true
   clean:
     handler: handler.clean
     events:
       - schedule: cron(0 20 * * ? *)
 
-# resources:
-#   Resources:
-#     S3Bucket:
-#       Type: AWS::S3::Bucket
-#       Properties:
-#         BucketName: ${env:STORAGE_NAME}
-#         LifecycleConfiguration:
-#           Rules:
-#             - ExpirationInDays: 3
-#               Prefix: "/"
-#               Status: Enabled
+resources:
+  Resources:
+    # S3Bucket:
+    #   Type: AWS::S3::Bucket
+    #   Properties:
+    #     BucketName: ${env:STORAGE_NAME}
+    #     # LifecycleConfiguration:
+    #     #   Rules:
+    #     #     - ExpirationInDays: 90
+    #     #       Prefix: "/"
+    #     #       Status: Enabled
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:TABLE_USERS}
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: image_type
+            AttributeType: S
+          - AttributeName: latest
+            AttributeType: N
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+        GlobalSecondaryIndexes:
+          - IndexName: latest_index
+            KeySchema:
+              - AttributeName: image_type
+                KeyType: HASH
+              - AttributeName: latest
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 2
+              WriteCapacityUnits: 2
+    historyTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:TABLE_HISTORY}
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: visited
+            AttributeType: N
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: visited
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+        GlobalSecondaryIndexes:
+          - IndexName: visited_index
+            KeySchema:
+              - AttributeName: user_id
+                KeyType: HASH
+              - AttributeName: visited
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 2
+              WriteCapacityUnits: 2
 
 plugins:
   - serverless-python-requirements
