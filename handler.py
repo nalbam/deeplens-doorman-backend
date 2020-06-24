@@ -249,6 +249,9 @@ def get_users():
         # 30 min
         latest = int(round(time.time() * 1000)) - (30 * 60 * 1000)
 
+        # 4 hour
+        latest = int(round(time.time() * 1000)) - (4 * 60 * 60 * 1000)
+
         # res = tbl.scan(
         #     # IndexName="users_index", Limit=5
         # )
@@ -294,17 +297,12 @@ def get_history(user_id):
 
 
 def create_faces(
-    user_id,
-    image_key,
-    image_url,
-    image_type="unknown",
-    user_name="unknown",
-    real_name="Unknown",
+    user_id, image_key, image_url, thermal="x", temperature="-", device_id="unknown",
 ):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature, device_id = has_thermal(image_key)
+    # thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -312,11 +310,11 @@ def create_faces(
         res = tbl.put_item(
             Item={
                 "user_id": user_id,
-                "user_name": user_name,
-                "real_name": real_name,
+                "user_name": "unknown",
+                "real_name": "unknown",
                 "image_key": image_key,
                 "image_url": image_url,
-                "image_type": image_type,
+                "image_type": "unknown",
                 "thermal": thermal,
                 "temperature": temperature,
                 "device_id": device_id,
@@ -336,27 +334,30 @@ def put_faces(
     user_id,
     image_key,
     image_url,
-    image_type="unknown",
-    user_name="unknown",
-    real_name="Unknown",
+    # image_type="unknown",
+    # user_name="unknown",
+    # real_name="Unknown",
+    thermal="x",
+    temperature="-",
+    device_id="unknown",
 ):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature, device_id = has_thermal(image_key)
+    # thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set user_name = :user_name, real_name=:real_name, image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
             ExpressionAttributeValues={
-                ":user_name": user_name,
-                ":real_name": real_name,
+                # ":user_name": user_name,
+                # ":real_name": real_name,
                 ":image_key": image_key,
                 ":image_url": image_url,
-                ":image_type": image_type,
+                # ":image_type": image_type,
                 ":thermal": thermal,
                 ":temperature": temperature,
                 ":device_id": device_id,
@@ -373,22 +374,30 @@ def put_faces(
     return res
 
 
-def put_faces_image(user_id, image_key, image_url, image_type="detected"):
+def put_faces_image(
+    user_id,
+    image_key,
+    image_url,
+    # image_type="detected",
+    thermal="x",
+    temperature="-",
+    device_id="unknown",
+):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_USERS)
 
-    thermal, temperature, device_id = has_thermal(image_key)
+    # thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
     try:
         res = tbl.update_item(
             Key={"user_id": user_id},
-            UpdateExpression="set image_key=:image_key, image_url=:image_url, image_type=:image_type, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
+            UpdateExpression="set image_key=:image_key, image_url=:image_url, thermal=:thermal, temperature=:temperature, device_id=:device_id, latest=:latest",
             ExpressionAttributeValues={
                 ":image_key": image_key,
                 ":image_url": image_url,
-                ":image_type": image_type,
+                # ":image_type": image_type,
                 ":thermal": thermal,
                 ":temperature": temperature,
                 ":device_id": device_id,
@@ -405,11 +414,13 @@ def put_faces_image(user_id, image_key, image_url, image_type="detected"):
     return res
 
 
-def create_history(user_id, image_key, image_url):
+def create_history(
+    user_id, image_key, image_url, thermal="x", temperature="-", device_id="unknown",
+):
     # ddb = boto3.resource("dynamodb", region_name=AWS_REGION)
     tbl = ddb.Table(TABLE_HISTORY)
 
-    thermal, temperature, device_id = has_thermal(image_key)
+    # thermal, temperature, device_id = has_thermal(image_key)
 
     latest = int(round(time.time() * 1000))
 
@@ -435,22 +446,40 @@ def create_history(user_id, image_key, image_url):
     return res
 
 
-def send_message(text, key):
+def send_message(text, key, thermal=""):
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
         STORAGE_NAME, AWS_REGION, key
     )
 
-    auth = "Bearer {}".format(SLACK_API_TOKEN)
+    attachments = []
+
+    if thermal != "":
+        thermal_url = "https://{}.s3-{}.amazonaws.com/thermal/{}".format(
+            STORAGE_NAME, AWS_REGION, thermal
+        )
+        attachments.append(
+            {
+                "image_url": thermal_url,
+                "attachment_type": "default",
+                "fallback": "Nope?",
+            }
+        )
+
+    attachments.append(
+        {"image_url": image_url, "attachment_type": "default", "fallback": "Nope?"}
+    )
 
     message = {
         "channel": SLACK_CHANNEL_ID,
         "text": text,
         "link_names": True,
-        "attachments": [
-            {"image_url": image_url, "fallback": "Nope?", "attachment_type": "default",}
-        ],
+        "attachments": attachments,
     }
-    # print(message)
+
+    auth = "Bearer {}".format(SLACK_API_TOKEN)
+
+    print(message)
+
     res = requests.post(
         "https://slack.com/api/chat.postMessage",
         headers={
@@ -514,9 +543,11 @@ def guess(event, context):
             STORAGE_NAME, AWS_REGION, new_key
         )
 
-        put_faces_image(user_id, new_key, image_url)
+        thermal, temperature, device_id = has_thermal(new_key)
 
-        create_history(user_id, new_key, image_url)
+        put_faces_image(user_id, new_key, image_url, thermal, temperature, device_id)
+
+        create_history(user_id, new_key, image_url, thermal, temperature, device_id)
 
         text = "Detected {}".format(real_name)
         send_message(text, new_key)
@@ -532,6 +563,8 @@ def unknown(event, context):
 
     print("Unknown", key)
 
+    thermal, temperature, device_id = has_thermal(key)
+
     keys = key.split("/")
 
     image_url = "https://{}.s3-{}.amazonaws.com/{}".format(
@@ -541,7 +574,7 @@ def unknown(event, context):
     if len(keys) > 2:
         user_id = keys[1]
 
-        put_faces(user_id, key, image_url)
+        put_faces(user_id, key, image_url, thermal, temperature, device_id)
 
     else:
         res = index_faces(key)
@@ -570,58 +603,67 @@ def unknown(event, context):
 
         # new_key = move_unknown(key, bounding_box, user_id)
 
-        create_faces(user_id, key, image_url)
+        create_faces(user_id, key, image_url, thermal, temperature, device_id)
 
-    create_history(user_id, key, image_url)
+    create_history(user_id, key, image_url, thermal, temperature, device_id)
 
     # text = "I don't know who this is, can you tell me?"
-    text = "새로운 사람이 감지 되었습니다."
+    if thermal == "x":
+        text = "새로운 사람이 감지 되었습니다."
+    else:
+        text = "`{}` 에서 `{}` 가 감지 되었습니다.".format(device_id, temperature)
 
-    auth = "Bearer {}".format(SLACK_API_TOKEN)
+    thermal_key = ""
+    if len(keys) > 2:
+        thermal_key = keys[2]
 
-    message = {
-        "channel": SLACK_CHANNEL_ID,
-        "text": text,
-        "attachments": [
-            {
-                "image_url": image_url,
-                "fallback": "Nope?",
-                "attachment_type": "default",
-                # "callback_id": user_id,
-                # "actions": [
-                #     {
-                #         "name": "username",
-                #         "text": "Select a username...",
-                #         "type": "select",
-                #         "data_source": "users",
-                #     },
-                #     {
-                #         "name": "discard",
-                #         "text": "Ignore",
-                #         "style": "danger",
-                #         "type": "button",
-                #         "value": "ignore",
-                #         # "confirm": {
-                #         #     "title": "Are you sure?",
-                #         #     "text": "Are you sure you want to ignore and delete this image?",
-                #         #     "ok_text": "Yes",
-                #         #     "dismiss_text": "No",
-                #         # },
-                #     },
-                # ],
-            },
-        ],
-    }
-    # print(message)
-    res = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={
-            "Content-Type": "application/json;charset=UTF-8",
-            "Authorization": auth,
-        },
-        json=message,
-    )
-    print(res.json())
+    send_message(text, key, thermal_key)
+
+    # auth = "Bearer {}".format(SLACK_API_TOKEN)
+
+    # message = {
+    #     "channel": SLACK_CHANNEL_ID,
+    #     "text": text,
+    #     "attachments": [
+    #         {
+    #             "image_url": image_url,
+    #             "fallback": "Nope?",
+    #             "attachment_type": "default",
+    #             # "callback_id": user_id,
+    #             # "actions": [
+    #             #     {
+    #             #         "name": "username",
+    #             #         "text": "Select a username...",
+    #             #         "type": "select",
+    #             #         "data_source": "users",
+    #             #     },
+    #             #     {
+    #             #         "name": "discard",
+    #             #         "text": "Ignore",
+    #             #         "style": "danger",
+    #             #         "type": "button",
+    #             #         "value": "ignore",
+    #             #         # "confirm": {
+    #             #         #     "title": "Are you sure?",
+    #             #         #     "text": "Are you sure you want to ignore and delete this image?",
+    #             #         #     "ok_text": "Yes",
+    #             #         #     "dismiss_text": "No",
+    #             #         # },
+    #             #     },
+    #             # ],
+    #         },
+    #     ],
+    # }
+    # # print(message)
+    # res = requests.post(
+    #     "https://slack.com/api/chat.postMessage",
+    #     headers={
+    #         "Content-Type": "application/json;charset=UTF-8",
+    #         "Authorization": auth,
+    #     },
+    #     json=message,
+    # )
+    # print(res.json())
 
     return {}
 
